@@ -71,6 +71,93 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     screenState = ScreenState::EVENT_SCREEN;
 }
 
+// this initialization only properly sets up things for an already known combat
+// it will not recreate the entire state properly from the communication mod json state
+void GameContext::initFromJson(const nlohmann::json &json) {
+    seed = json["game_state"]["seed"];
+
+    outcome = GameOutcome::UNDECIDED;
+    ascension = json["game_state"]["ascension_level"];
+    act = json["game_state"]["act"];
+    floorNum = json["game_state"]["floor"];
+
+    if (json["game_state"].contains("screen_state") && json["game_state"]["screen_state"].contains("current_node")) {
+        json["game_state"]["screen_state"]["current_node"].at("x").get_to(curMapNodeX);
+        json["game_state"]["screen_state"]["current_node"].at("y").get_to(curMapNodeY);
+    } else {
+    }
+
+    cc = sts::getCharacterFromCommModName(json.at("game_state").at("class").get<std::string>());
+
+    curHp = json["game_state"]["current_hp"];
+    maxHp = json["game_state"]["max_hp"];
+    gold = json["game_state"]["gold"];
+    speedrunPace = false;
+
+    // the seed usage counts aren't sent by communication mod
+    // set to 0 uses since it isn't relevant to simulating combats without perfect knowledge
+    treasureRng = Random(seed);
+    eventRng = Random(seed);
+    relicRng = Random(seed);
+    potionRng = Random(seed);
+    cardRng = Random(seed);
+    cardRandomRng = Random(seed);
+    merchantRng = Random(seed);
+    mathUtilRng = Random(seed);
+    merchantRng = Random(seed);
+    miscRng = Random(seed+floorNum);
+    monsterRng = Random(seed);
+
+    initRelicsFromJson(json);
+
+    potionCount = 0;
+    auto jsonPotions = json["game_state"]["potions"];
+    potionCapacity = jsonPotions.size();
+    for (int i = 0; i < jsonPotions.size(); ++i) {
+        auto p = jsonPotions[i];
+        if (p["id"] != "Potion Slot") {
+            ++potionCount;
+            potions[i] = getPotionFromId(p["id"]);
+        } else {
+            potions[i] = Potion::EMPTY_POTION_SLOT;
+        }
+    }
+
+    auto jsonDeck = json["game_state"]["deck"];
+    for (int i = 0; i < jsonDeck.size(); ++i) {
+        auto c = jsonDeck[i];
+        CardId cardId = getCardIdFromName(c.at("id").get<std::string>());
+        deck.obtain(*this, cardId, 1);
+        for (int j = 0; j < c["upgrades"]; j++) {
+            deck.upgrade(i);
+        }
+    }
+
+    map = std::make_shared<Map>(Map::fromSeed(seed, ascension, act, true));
+
+    // TODO NEOW event!!!
+    curRoom = sts::getRoomFromId(json["game_state"]["room_type"]);
+
+    if (json["game_state"].contains("combat_state")) {
+        screenState = ScreenState::BATTLE;
+    } else {
+        screenState = screenStateFromId(json["game_state"]["screen_type"]);
+    }
+
+    generateMonsters();
+}
+
+void GameContext::initRelicsFromJson(const nlohmann::json &json) {
+    for (int i = 0; i < json["game_state"]["relics"].size(); ++i) {
+        auto r = json["game_state"]["relics"][i];
+        std::string relicName = r["id"].get<std::string>();
+        RelicId relicId = sts::getRelicFromName(relicName);
+        
+        RelicInstance relic {relicId, r["counter"]};
+        relics.add(relic);
+    }
+}
+
 void GameContext::initFromSave(const SaveFile &s) {
     seed = s.seed;
 

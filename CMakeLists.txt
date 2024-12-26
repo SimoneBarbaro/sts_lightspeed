@@ -6,7 +6,7 @@ project(
         LANGUAGES CXX)
 
 file (GLOB_RECURSE sts_lightspeed_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS  "-Wno-shift-count-overflow -O3")
 
@@ -34,3 +34,9 @@ target_link_directories(small-test PRIVATE json::nlohmann_json)
 target_include_directories(small-test PUBLIC include)
 target_include_directories(small-test PUBLIC json/include)
 target_include_directories(small-test PUBLIC bindings)
+
+add_executable(test-converter apps/test-converter.cpp ${sts_lightspeed_SOURCES})
+target_link_directories(test-converter PRIVATE json::nlohmann_json)
+target_include_directories(test-converter PUBLIC include)
+target_include_directories(test-converter PUBLIC json/include)
+

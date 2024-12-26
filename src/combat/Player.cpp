@@ -117,7 +117,64 @@ void Player::channelOrb(Orb orb) {
 bool Player::hasEmptyOrb() const {
     return false;
 }
+void Player::setHasStatus(PlayerStatus s, bool value) {
+//        static_assert(s != PlayerStatus::THE_BOMB);
 
+        switch (s) {
+            case PS::ARTIFACT:
+            case PS::DEXTERITY:
+            case PS::STRENGTH:
+            case PS::FOCUS:
+                return;
+            default:
+                break;
+        }
+
+        //static_assert(((int)s) < 64); // did we add too many status effects
+        int idx = static_cast<int>(s);
+        if (value) {
+            if (idx < 64) {
+                statusBits0 |= 1ULL << idx;
+            } else {
+                statusBits1 |= 1ULL << (idx-64);
+            }
+        } else {
+            if (idx < 64) {
+                statusBits0 &= ~(1ULL << idx);
+            } else {
+                statusBits1 &= ~(1ULL << (idx-64));
+            }
+        }
+}
+void Player::setStatusValueNoChecks(PlayerStatus s, int value) {
+        switch (s) {
+            case PS::ARTIFACT:
+                artifact = value;
+                break;
+
+            case PS::DEXTERITY:
+                dexterity = value;
+                break;
+
+            case PS::FOCUS:
+                focus = value;
+                break;
+
+            case PS::STRENGTH:
+                strength = value;
+                break;
+
+            default:
+                statusMap[s] = value;
+        }
+}
+void Player::setJustApplied(PlayerStatus s, bool value) {
+    if (value) {
+        justAppliedBits |= (1ULL << static_cast<int>(s));
+    } else {
+        justAppliedBits &= ~(1ULL << static_cast<int>(s));
+    }
+}
 void Player::removeDebuffs() {
     if (getStatus<PS::STRENGTH>() < 0) {
         setStatusValueNoChecks<PS::STRENGTH>(0);

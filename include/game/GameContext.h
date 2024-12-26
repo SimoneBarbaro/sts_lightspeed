@@ -5,10 +5,12 @@
 #ifndef STS_LIGHTSPEED_GAMECONTEXT_H
 #define STS_LIGHTSPEED_GAMECONTEXT_H
 
+#include <string>
 #include <vector>
 #include <array>
 #include <functional>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 #include "data_structure/fixed_list.h"
 
@@ -67,6 +69,25 @@ namespace sts {
         SHOP_ROOM,
         BATTLE,
     };
+    static constexpr const char* const screenTypesIds[] {
+        "NONE",
+        "EVENT",
+        "COMBAT_REWARD",
+        "BOSS_REWARD",
+        "CARD_REWARD",
+        "MAP",
+        "CHEST",
+        "REST",
+        "SHOP_ROOM"};
+
+    static ScreenState screenStateFromId(const std::string &id) {
+        for (int i = 0; i < static_cast<int>(ScreenState::BATTLE); i++) {
+            if (id == screenTypesIds[i]) {
+                return static_cast<ScreenState>(i);
+            }
+        }
+        return ScreenState::INVALID;
+    }
 
     struct SelectScreenCard {
         Card card;
@@ -238,6 +259,9 @@ namespace sts {
 
         GameContext() = default;
         GameContext(CharacterClass cc, std::uint64_t seed, int ascensionLevel);
+
+        void initFromJson(const nlohmann::json &json);
+        void initRelicsFromJson(const nlohmann::json &json);
 
         void initFromSave(const SaveFile &s);
         void initRelicsFromSave(const SaveFile &s);
