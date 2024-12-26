@@ -6,6 +6,7 @@
 #define STS_LIGHTSPEED_CHARACTERCLASSES_H
 
 #include <cstdint>
+#include <string>
 
 namespace sts {
 
@@ -23,7 +24,19 @@ namespace sts {
     static const char* getCharacterClassName(CharacterClass cc) {
         return characterClassNames[static_cast<int>(cc)];
     }
-
+    static CharacterClass getCharacterFromCommModName(const std::string &name) {
+        if (name.compare("IRONCLAD")) {
+            return CharacterClass::IRONCLAD;
+        }else if (name.compare("THE_SILENT")) {
+            return CharacterClass::SILENT;
+        } else if (name.compare("DEFECT")) {
+            return CharacterClass::DEFECT;
+        } else if (name.compare("WATCHER")) {
+            return CharacterClass::WATCHER;
+        } else {
+            return CharacterClass::INVALID;
+        }
+    }
 }
 
 #endif //STS_LIGHTSPEED_CHARACTERCLASSES_H

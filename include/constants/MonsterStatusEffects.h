@@ -5,6 +5,8 @@
 #ifndef STS_LIGHTSPEED_MONSTERSTATUSEFFECTS_H
 #define STS_LIGHTSPEED_MONSTERSTATUSEFFECTS_H
 
+#include <string>
+
 namespace sts {
 
     enum class MonsterStatus: std::uint8_t {
@@ -162,6 +164,15 @@ namespace sts {
         "STASIS",
         "INVALID",
     };
+
+    static MonsterStatus monsterStatusFromString(const std::string &str) {
+        for (int i = 0; i < static_cast<int>(MonsterStatus::INVALID); i++) {
+            if (str == enemyStatusStrings[i]) {
+                return static_cast<MonsterStatus>(i);
+            }
+        }
+        return MonsterStatus::INVALID;
+    }
 
     static constexpr bool isBooleanPower(MonsterStatus s) {
         switch (s) {

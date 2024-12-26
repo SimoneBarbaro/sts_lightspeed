@@ -6,6 +6,7 @@
 #define STS_LIGHTSPEED_MONSTERIDS_H
 
 #include <cstdint>
+#include <string>
 
 namespace sts {
 
@@ -146,7 +147,74 @@ namespace sts {
             "TRANSIENT",
             "WRITHING_MASS",
     };
-
+    static constexpr const char* const commModMonsterIdIds[] = {
+        "INVALID",
+        "AcidSlime_L",
+        "AcidSlime_M",
+        "AcidSlime_S",
+        "AwakenedOne",
+        "BanditBear",
+        "SlaverBlue",
+        "BookOfStabbing",
+        "BronzeAutomaton",
+        "BronzeOrb",
+        "Byrd",
+        "Centurion",
+        "Chosen",
+        "CorruptHeart",
+        "Cultist",
+        "Dagger",
+        "Darkling",
+        "Deca",
+        "Donu",
+        "Exploder",
+        "GremlinFat",
+        "FungiBeast",
+        "GiantHead",
+        "FuzzyLouseDefensive",
+        "GremlinLeader",
+        "GremlinNob",
+        "GremlinWizard",
+        "Hexaghost",
+        "JawWorm",
+        "Lagavulin",
+        "Looter",
+        "GremlinWarrior",
+        "Mugger",
+        "Healer",
+        "Nemesis",
+        "Orb Walker",
+        "BanditChild",
+        "FuzzyLouseNormal",
+        "SlaverRed",
+        "Reptomancer",
+        "Repulsor",
+        "BanditLeader",
+        "Sentry",
+        "Shelled Parasite",
+        "GremlinTsundere",
+        "SlimeBoss",
+        "SnakePlant",
+        "GremlinThief",
+        "Snecko",
+        "SphericGuardian",
+        "Spiker",
+        "SpikeSlime_L",
+        "SpikeSlime_M",
+        "SpikeSlime_S",
+        "Serpent",
+        "SpireShield",
+        "SpireSpear",
+        "SlaverBoss",
+        "Champ",
+        "TheCollector",
+        "TheGuardian",
+        "Maw",
+        "TimeEater",
+        "TorchHead",
+        "Transient",
+        "WrithingMass",
+    };
     constexpr int monsterHpRange[][2][2] = {
             {{0,0},{0,0}}, // INVALID = 0
             {{65,69},{68,72}}, // ACID_SLIME_L
@@ -215,7 +283,15 @@ namespace sts {
             {{999,999},{999,999}}, // TRANSIENT
             {{160,160},{175,175}}, // WRITHING_MASS
     };
-
+    static MonsterId getMonsterIdFromId(std::string name) {
+        for (int i = 0; i < static_cast<int>(MonsterId::WRITHING_MASS); i++) {
+            
+            if (name.compare(commModMonsterIdIds[i]) == 0) {
+                return static_cast<MonsterId>(i);
+            }
+        }
+        return MonsterId::INVALID;
+    }
 }
 
 
