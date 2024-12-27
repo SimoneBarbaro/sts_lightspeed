@@ -284,7 +284,7 @@ namespace sts {
             {{160,160},{175,175}}, // WRITHING_MASS
     };
     static MonsterId getMonsterIdFromId(std::string name) {
-        for (int i = 0; i < static_cast<int>(MonsterId::WRITHING_MASS); i++) {
+        for (int i = 0; i <= static_cast<int>(MonsterId::WRITHING_MASS); i++) {
             
             if (name.compare(commModMonsterIdIds[i]) == 0) {
                 return static_cast<MonsterId>(i);

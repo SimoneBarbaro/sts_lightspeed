@@ -473,7 +473,7 @@ void search::SimpleAgent::stepBattleCardSelect(BattleContext &bc) {
             setupCardOptionsHelper(actions, bc.cards.exhaustPile.begin(), bc.cards.exhaustPile.end(),
                                    [](const auto &c) { return c.getId() != CardId::EXHUME; });
             break;
-
+        case CardSelectTask::DISCARD_ONE:
         case CardSelectTask::EXHAUST_ONE:
             setupCardOptionsHelper(actions, bc.cards.hand.begin(), bc.cards.hand.begin() + bc.cards.cardsInHand);
             break;

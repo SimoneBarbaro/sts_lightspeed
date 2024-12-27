@@ -461,7 +461,7 @@ namespace sts {
     }
 
     static CardId getCardIdFromName(std::string name) {
-        for (int i = 0; i < static_cast<int>(CardId::ZAP); i++) {
+        for (int i = 0; i <= static_cast<int>(CardId::ZAP); i++) {
             if (name.compare(cardStringIds[i]) == 0) {
                 return static_cast<CardId>(i);
             }

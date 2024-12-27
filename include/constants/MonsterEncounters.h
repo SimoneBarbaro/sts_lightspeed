@@ -153,7 +153,7 @@ namespace sts {
     };
 
 static MonsterEncounter getMonsterEncounterFromString(const std::string &id) {
-        for (int i = 0; i < static_cast<int>(MonsterEncounter::MYSTERIOUS_SPHERE_EVENT); i++) {
+        for (int i = 0; i <= static_cast<int>(MonsterEncounter::MYSTERIOUS_SPHERE_EVENT); i++) {
                 if (id == monsterEncounterStrings[i]) {
                         return static_cast<MonsterEncounter>(i);
                 }

@@ -147,6 +147,7 @@ bool isValidSingleCardSelectAction(const BattleContext &bc, const search::Action
             }
             return bc.cards.exhaustPile[a.getSelectIdx()].id != sts::CardId::EXHUME;
 
+        case CardSelectTask::DISCARD_ONE:
         case CardSelectTask::EXHAUST_ONE:
         case CardSelectTask::FORETHOUGHT:
         case CardSelectTask::NIGHTMARE:
@@ -352,7 +353,9 @@ void executeSingleCardSelectActionHelper(BattleContext &bc, search::Action a) {
         case CardSelectTask::DUAL_WIELD:
             bc.chooseDualWieldCard(idx);
             break;
-
+        case CardSelectTask::DISCARD_ONE:
+            bc.chooseDiscardOneCard(idx);
+            break;
         case CardSelectTask::EXHAUST_ONE:
             bc.chooseExhaustOneCard(idx);
             break;
@@ -506,7 +509,7 @@ std::vector<search::Action> search::Action::enumerateCardSelectActions(const Bat
             setupCardOptionsHelper(actions, bc.cards.exhaustPile.begin(), bc.cards.exhaustPile.end(),
                                    [](const auto &c) { return c.getId() != CardId::EXHUME; });
             break;
-
+        case CardSelectTask::DISCARD_ONE:
         case CardSelectTask::EXHAUST_ONE:
             setupCardOptionsHelper(actions, bc.cards.hand.begin(), bc.cards.hand.begin() + bc.cards.cardsInHand);
             break;

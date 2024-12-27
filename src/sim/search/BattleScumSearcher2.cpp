@@ -343,6 +343,7 @@ void search::BattleScumSearcher2::enumerateCardSelectActions(search::BattleScumS
                                    [](const auto &c) { return c.getId() != CardId::EXHUME; });
             break;
 
+        case CardSelectTask::DISCARD_ONE:
         case CardSelectTask::EXHAUST_ONE:
             setupCardOptionsHelper(node, bc.cards.hand.begin(), bc.cards.hand.begin() + bc.cards.cardsInHand);
             break;

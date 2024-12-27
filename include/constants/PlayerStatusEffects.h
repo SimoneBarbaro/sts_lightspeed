@@ -124,7 +124,7 @@ static constexpr const char* const playerStatusEnumStrings[] {
 };
 
 static PlayerStatus playerStatusFromString(const std::string &str) {
-    for (int i = 0; i < static_cast<int>(PlayerStatus::THE_BOMB); i++) {
+    for (int i = 0; i <= static_cast<int>(PlayerStatus::THE_BOMB); i++) {
         if (str == playerStatusStrings[i]) {
             return static_cast<PlayerStatus>(i);
         }

@@ -1531,7 +1531,7 @@ void BattleContext::useAttackCard() {
             break;
 
         //TODO test new cards
-        case CardId::NEUTRALIZE:
+        /*case CardId::NEUTRALIZE:
             addToBot( Actions::AttackEnemy(t, calculateCardDamage(c, t, up ? 4 : 3)) );
             addToBot( Actions::DebuffEnemy<MS::WEAK>(t, up ? 2 : 1, false) );
             break;
@@ -1549,6 +1549,7 @@ void BattleContext::useAttackCard() {
         case CardId::SHIV:
             addToBot( Actions::AttackEnemy(t, calculateCardDamage(c, t, up ? 6 : 4)) );
             break;
+        */
         default:
 #ifdef sts_asserts
             std::cerr << "attempted to use unimplemented card: " << c.getName() << std::endl;
@@ -1856,7 +1857,7 @@ void BattleContext::useSkillCard() {
             addToBot( Actions::WarcryAction() );
             break;
         // TODO should test these
-        case CardId::PIERCING_WAIL:
+        /*case CardId::PIERCING_WAIL:
             addToBot( Actions::DebuffAllEnemy<MonsterStatus::STRENGTH>(up ? -8 : -6, false) );
             addToBot( Actions::DebuffAllEnemy<MonsterStatus::SHACKLED>(up ? 8 : 6, false) );
             break;
@@ -1871,16 +1872,17 @@ void BattleContext::useSkillCard() {
             break;
         case CardId::SURVIVOR:
             addToBot( Actions::GainBlock(calculateCardBlock(up ? 11 : 8)) );
-            //addToBot( Actions::ChooseDiscardOne() );
+            addToBot( Actions::ChooseDiscardOne() );
             break;
         case CardId::CRIPPLING_CLOUD:
             addToBot( Actions::DebuffAllEnemy<MonsterStatus::WEAK>(2, false) );
-            //addToBot( Actions::DebuffAllEnemy<MonsterStatus::POISON>(up ? 7 : 4, false) );
+            addToBot( Actions::DebuffAllEnemy<MonsterStatus::POISON>(up ? 7 : 4, false) );
             break;
         case CardId::BACKFLIP:
             addToBot( Actions::GainBlock(calculateCardBlock(up ? 8 : 5)) );
             addToBot( Actions::DrawCards(2) );
             break;
+        */
         default:
 #ifdef sts_asserts
             std::cerr << "attempted to use unimplemented card: " << c.getName() << std::endl;
@@ -1978,7 +1980,7 @@ void BattleContext::usePowerCard() {
             break;
 
         // TODO test new powers
-        case CardId::INFINITE_BLADES:
+        /*case CardId::INFINITE_BLADES:
             addToBot( Actions::BuffPlayer<PS::INFINITE_BLADES>(1) );
             break;
 
@@ -1993,6 +1995,7 @@ void BattleContext::usePowerCard() {
         case CardId::WELL_LAID_PLANS:
             //addToBot( Actions::BuffPlayer<PS::WELL_LAYED_PLANS>(1) );
             break;
+        */
         default:
 #ifdef sts_asserts
             std::cerr << "attempted to use unimplemented card: " << c.getName() << std::endl;

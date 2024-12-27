@@ -238,7 +238,7 @@ namespace sts {
     }
 
     static RelicId getRelicFromName(const std::string &name) {
-        for (int i = 0; i < static_cast<int>(RelicId::INVALID); i++) {
+        for (int i = 0; i <= static_cast<int>(RelicId::INVALID); i++) {
             if (name.compare(relicIds[i]) == 0) {
                 return static_cast<RelicId>(i);
             }
