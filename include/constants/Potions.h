@@ -163,7 +163,7 @@ namespace sts {
 
     static Potion getPotionFromId(const std::string &id) {
         for (int i = 0; i < static_cast<int>(Potion::WEAK_POTION); i++) {
-            if (id == potionNames[i]) {
+            if (id == potionIds[i]) {
                 return static_cast<Potion>(i);
             }
         }
