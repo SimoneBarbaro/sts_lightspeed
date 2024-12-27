@@ -835,7 +835,20 @@ Action Actions::ChooseExhaustOne() {
         }
     }};
 }
+Action Actions::ChooseDiscardOne() {
+    return {[=] (BattleContext &bc) {
+        if (bc.cards.cardsInHand == 0) {
+            return;
 
+        } else if (bc.cards.cardsInHand == 1) {
+            bc.chooseDiscardOneCard(0);
+
+        } else {
+            bc.openSimpleCardSelectScreen(CardSelectTask::DISCARD_ONE, 1);
+
+        }
+    }};
+}
 Action Actions::DrawToHandAction(CardSelectTask task, CardType cardType) {
     return {[=] (BattleContext &bc) {
         int count = 0;

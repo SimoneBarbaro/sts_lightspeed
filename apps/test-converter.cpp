@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "combat/BattleContext.h"
-#include "combat/BattleConverter.h"
 #include "game/GameContext.h"
 #include "sim/ConsoleSimulator.h"
 #include "sim/search/BattleScumSearcher2.h"
@@ -34,6 +33,10 @@ int main() {
     for (int i = 0; i < gc.relics.relics.size(); ++i) {
         std::cout << "Relic " << i << ": " << sts::relicNames[static_cast<int>(gc.relics.relics[i].id)] << std::endl;
     }
+    // print potions
+    for (int i = 0; i < gc.potions.size(); ++i) {
+        std::cout << "Potion " << i << ": " << sts::potionNames[static_cast<int>(gc.potions[i])] << std::endl;
+    }
     // print map
     std::cout << gc.map->toString() << std::endl;
 
@@ -46,7 +49,15 @@ int main() {
     agent.printActions = 1;
     agent.printLogs = 1;
 
-    agent.playout(gc);
+    // Finish battle if already started one
+    if (gc.screenState == sts::ScreenState::BATTLE) {
+        sts::BattleContext bc;
+        bc.initFromJson(gc, json["game_state"]["combat_state"]);
+        agent.playoutBattle(bc);
+        bc.exitBattle(gc);
+    }
+    if (gc.outcome == sts::GameOutcome::UNDECIDED)
+        agent.playout(gc);
 
     sts::printOutcome(std::cout, gc);
 }

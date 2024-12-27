@@ -71,8 +71,6 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     screenState = ScreenState::EVENT_SCREEN;
 }
 
-// this initialization only properly sets up things for an already known combat
-// it will not recreate the entire state properly from the communication mod json state
 void GameContext::initFromJson(const nlohmann::json &json) {
     seed = json["game_state"]["seed"];
 
@@ -107,7 +105,7 @@ void GameContext::initFromJson(const nlohmann::json &json) {
     merchantRng = Random(seed);
     miscRng = Random(seed+floorNum);
     monsterRng = Random(seed);
-
+    initRelics();
     initRelicsFromJson(json);
 
     potionCount = 0;
@@ -140,11 +138,40 @@ void GameContext::initFromJson(const nlohmann::json &json) {
 
     if (json["game_state"].contains("combat_state")) {
         screenState = ScreenState::BATTLE;
+        regainControlAction = [](GameContext &gc) {
+            gc.afterBattle();
+        };
     } else {
         screenState = screenStateFromId(json["game_state"]["screen_type"]);
     }
 
     generateMonsters();
+
+    auto jsonBoss = json["game_state"]["act_boss"].get<std::string>();
+    boss = sts::getMonsterEncounterFromString(jsonBoss);
+    // TODO do I need to generate act 3 second boss here for asc 20?
+
+    // this is a game bug, the shrine list is not stored in the save file
+    shrineList.clear();
+    switch (act) {
+        case 1:
+            shrineList.insert(shrineList.begin(), EventPools::Act1::shrines.begin(), EventPools::Act1::shrines.end());
+            eventList.insert(eventList.end(), EventPools::Act1::events.begin(), EventPools::Act1::events.end());
+            break;
+
+        case 2:
+            shrineList.insert(shrineList.begin(), EventPools::Act2::shrines.begin(), EventPools::Act2::shrines.end());
+            eventList.insert(eventList.end(), EventPools::Act2::events.begin(), EventPools::Act2::events.end());
+            break;
+        case 3:
+            shrineList.insert(shrineList.begin(), EventPools::Act3::shrines.begin(), EventPools::Act3::shrines.end());
+            eventList.insert(eventList.end(), EventPools::Act3::events.begin(), EventPools::Act3::events.end());
+            break;
+
+        case 4:
+        default:
+            break;
+    }
 }
 
 void GameContext::initRelicsFromJson(const nlohmann::json &json) {
@@ -155,6 +182,7 @@ void GameContext::initRelicsFromJson(const nlohmann::json &json) {
         
         RelicInstance relic {relicId, r["counter"]};
         relics.add(relic);
+        // TODO remove relics from relic pools?
     }
 }
 

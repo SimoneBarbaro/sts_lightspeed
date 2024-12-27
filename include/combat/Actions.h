@@ -142,6 +142,7 @@ namespace sts {
         static Action ForethoughtAction(bool upgraded);
         static Action HeadbuttAction();
         static Action ChooseExhaustOne();
+        static Action ChooseDiscardOne();
         static Action DrawToHandAction(CardSelectTask task, CardType cardType);
         static Action WarcryAction();
 

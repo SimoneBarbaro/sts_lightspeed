@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <array>
+#include <nlohmann/json.hpp>
 
 #include "sts_common.h"
 
@@ -100,6 +101,16 @@ namespace sts {
 
         void init(const GameContext &gc);
         void init(const GameContext &gc, MonsterEncounter encounterToInit);
+        // Init from json combat_state as we receive from communication mod
+        void initFromJson(const GameContext &gc, const nlohmann::json &json);
+        // Init from json combat_state as we receive from communication mod
+        void initRelicsFromJson(const sts::GameContext &gc);
+        // Init from json combat_state as we receive from communication mod
+        void initPowersFromJson(nlohmann::json_abi_v3_11_3::json &powers);
+        // Init from json combat_state as we receive from communication mod
+        void initCardsFromJson(const nlohmann::json_abi_v3_11_3::json &json_combat_state, int &uniqueCardId);
+        // Init from json combat_state as we receive from communication mod
+        void initMonstersFormJson(nlohmann::json_abi_v3_11_3::json &jsonMonsters, int &uniqueCardId);
 
         void initRelics(const GameContext &gc);
 
@@ -187,6 +198,7 @@ namespace sts {
 
         void onManualDiscard(const CardInstance &c);
         void onShuffle();
+        void triggerAndMoveToDiscardPile(CardInstance c);
         void triggerAndMoveToExhaustPile(CardInstance c);
         void mummifiedHandOnUsePower();
 
@@ -199,6 +211,7 @@ namespace sts {
         void chooseCodexCard(CardId id);
         void chooseDiscardToHandCard(int discardIdx, bool forZeroCost);
         void chooseDiscoveryCard(CardId id);
+        void chooseDiscardOneCard(int handIdx);
         void chooseDualWieldCard(int handIdx);
         void chooseExhaustOneCard(int handIdx);
         void chooseExhumeCard(int exhaustIdx);
