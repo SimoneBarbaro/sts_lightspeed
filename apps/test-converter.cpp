@@ -24,6 +24,7 @@ int main() {
     nlohmann::json json = nlohmann::json::parse(jsonString);
     sts::GameContext gc;
     gc.initFromJson(json);
+    gc.randomizeRngCounters();
     //std::cout << gc;
     // print deck
     for (int i = 0; i < gc.deck.cards.size(); ++i) {
@@ -53,6 +54,7 @@ int main() {
     if (gc.screenState == sts::ScreenState::BATTLE) {
         sts::BattleContext bc;
         bc.initFromJson(gc, json["game_state"]["combat_state"]);
+        bc.randomizeRngCounters();
         agent.playoutBattle(bc);
         bc.exitBattle(gc);
     }

@@ -368,9 +368,8 @@ namespace sts {
         void chooseTreasureRoomOption(bool openChest);
 
         void regainControl();
+        void randomizeRngCounters();
     };
-
-
 }
 
 

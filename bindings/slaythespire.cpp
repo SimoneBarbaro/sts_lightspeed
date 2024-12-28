@@ -69,6 +69,12 @@ PYBIND11_MODULE(slaythespire, m) {
                [] (const GameContext &gc) { return std::vector(gc.relics.relics); },
                "returns a copy of the list of relics"
         )
+        .def("init_from_json", 
+            &sts::py::initGameContextFromJsonString,
+            "initialize the GameContext from a json object")
+        .def("randomize_rng_counters",
+            &GameContext::randomizeRngCounters,
+            "randomize the rng counters")
         .def("__repr__", [](const GameContext &gc) {
             std::ostringstream oss;
             oss << "<" << gc << ">";
@@ -104,6 +110,52 @@ PYBIND11_MODULE(slaythespire, m) {
         .def_readwrite("shop_remove_count", &GameContext::shopRemoveCount)
         .def_readwrite("speedrun_pace", &GameContext::speedrunPace)
         .def_readwrite("note_for_yourself_card", &GameContext::noteForYourselfCard);
+    pybind11::class_<BattleContext> battleContext(m, "BattleContext");
+    battleContext.def(pybind11::init<>())
+        .def("init",
+            [](BattleContext &bc, const GameContext &gc) {bc.init(gc);},
+            "initialize the BattleContext from a GameContext")
+        .def("init_from_json", 
+            &sts::py::initBattleContextFromJsonString,
+            "initialize the BattleContext from a json object")
+        .def("randomize_rng_counters",
+            &BattleContext::randomizeRngCounters,
+            "randomize the rng counters")
+        .def("exit_battle", 
+            &BattleContext::exitBattle, 
+            "exit the battle and update the GameContext")
+        .def_property_readonly("energy",
+            [](const BattleContext &bc) { return bc.player.energy; },
+            "returns a copy of the list of cards in the player's hand"
+        )
+        .def_property_readonly("hand", 
+            [](const BattleContext &bc) { return std::vector(bc.cards.hand.begin(), bc.cards.hand.end()); },
+            "returns a copy of the list of cards in the player's hand"
+        )
+        .def("add_to_bot_card", 
+            &BattleContext::addToBotCard, 
+            "add a card to the bot's action queue")
+        .def("discard_potion", 
+            &BattleContext::discardPotion,
+            "discard a potion from the player's inventory")
+        .def("drink_potion", 
+            &BattleContext::drinkPotion,
+            "drink a potion from the player's inventory")
+        .def("end_turn", 
+            &BattleContext::endTurn,
+            "end the player's turn")
+        .def("execute_actions",
+            [](BattleContext &bc) {
+                bc.inputState = InputState::EXECUTING_ACTIONS;
+                bc.executeActions();
+            },
+            "execute the actions in the bot's action queue")
+        .def_property_readonly("encounter", [](const BattleContext &bc) { return bc.encounter; },
+               "returns the current monster encounter"
+        )
+        .def_property_readonly("outcome", [](const BattleContext &bc) { return bc.outcome; },
+               "returns the battle outcome"
+        );
 
     pybind11::class_<RelicInstance> relic(m, "Relic");
     relic.def_readwrite("id", &RelicInstance::id)
@@ -149,6 +201,10 @@ PYBIND11_MODULE(slaythespire, m) {
     gameOutcome.value("UNDECIDED", GameOutcome::UNDECIDED)
         .value("PLAYER_VICTORY", GameOutcome::PLAYER_VICTORY)
         .value("PLAYER_LOSS", GameOutcome::PLAYER_LOSS);
+    pybind11::enum_<sts::Outcome> battleOutcome(m, "BattleOutcome");
+    battleOutcome.value("UNDECIDED", sts::Outcome::UNDECIDED)
+        .value("PLAYER_VICTORY", sts::Outcome::PLAYER_VICTORY)
+        .value("PLAYER_LOSS", sts::Outcome::PLAYER_LOSS);
 
     pybind11::enum_<ScreenState> screenState(m, "ScreenState");
     screenState.value("INVALID", ScreenState::INVALID)

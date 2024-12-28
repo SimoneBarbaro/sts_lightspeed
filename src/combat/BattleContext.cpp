@@ -3513,6 +3513,14 @@ void BattleContext::chooseGambleCards(const fixed_list<int, 10> &idxs) {
     }
 }
 
+void BattleContext::randomizeRngCounters() {
+    miscRng.setCounter(miscRng.nextInt());
+    aiRng.setCounter(aiRng.nextInt());
+    cardRandomRng.setCounter(cardRandomRng.nextInt());
+    shuffleRng.setCounter(shuffleRng.nextInt());
+    monsterHpRng.setCounter(monsterHpRng.nextInt());
+    potionRng.setCounter(potionRng.nextInt());
+}
 
 namespace sts {
     void printRngCounters(std::ostream &os, const BattleContext &bc) {

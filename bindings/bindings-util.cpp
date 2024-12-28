@@ -207,7 +207,15 @@ namespace sts::py {
         r.removeCardReward(r.cardRewardCount-1);
     }
 
+    void initGameContextFromJsonString(GameContext &gc, const std::string &json) {
+        nlohmann::json j = nlohmann::json::parse(json);
+        gc.initFromJson(j);
+    }
 
+    void initBattleContextFromJsonString(BattleContext &bc, GameContext &gc, const std::string &json) {
+        nlohmann::json j = nlohmann::json::parse(json);
+        bc.initFromJson(gc, j);
+    }
 
     // BEGIN MAP THINGS ****************************
 

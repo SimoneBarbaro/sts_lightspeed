@@ -43,6 +43,7 @@ namespace sts {
 
 
     class GameContext;
+    class BattleContext;
     class Map;
 
     namespace py {
@@ -61,6 +62,9 @@ namespace sts {
         std::vector<int> getNNMapRepresentation(const Map &map);
         Room getRoomType(const Map &map, int x, int y);
         bool hasEdge(const Map &map, int x, int y, int x2);
+
+        void initGameContextFromJsonString(GameContext &gc, const std::string &json);
+        void initBattleContextFromJsonString(BattleContext &bc, GameContext &gc, const std::string &json);
     }
 
 
