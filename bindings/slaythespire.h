@@ -39,6 +39,7 @@ namespace sts {
 
     namespace search {
         class ScumSearchAgent2;
+        class BattleScumSearcher2;
     }
 
 

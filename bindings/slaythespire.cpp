@@ -12,6 +12,7 @@
 
 #include "sim/ConsoleSimulator.h"
 #include "sim/search/ScumSearchAgent2.h"
+#include "sim/search/BattleScumSearcher2.h"
 #include "sim/SimHelpers.h"
 #include "sim/PrintHelpers.h"
 #include "game/Game.h"
@@ -39,10 +40,34 @@ PYBIND11_MODULE(slaythespire, m) {
         .def_readwrite("boss_simulation_multiplier", &search::ScumSearchAgent2::bossSimulationMultiplier, "bonus multiplier to the simulation count for boss fights")
         .def_readwrite("pause_on_card_reward", &search::ScumSearchAgent2::pauseOnCardReward, "causes the agent to pause so as to cede control to the user when it encounters a card reward choice")
         .def_readwrite("print_logs", &search::ScumSearchAgent2::printLogs, "when set to true, the agent prints state information as it makes actions")
-        .def("playout", &search::ScumSearchAgent2::playout);
+        .def_readwrite("print_actions", &search::ScumSearchAgent2::printActions, "when set to true, the agent prints the actions it takes")
+        .def("playout", &search::ScumSearchAgent2::playout)
+        .def("playout_battle", &search::ScumSearchAgent2::playoutBattle);
+
+    pybind11::class_<search::BattleScumSearcher2> battleAgent(m, "BattleAgent");
+    battleAgent.def(pybind11::init<const BattleContext&>())
+        .def("search", &search::BattleScumSearcher2::search)
+        .def("step", &search::BattleScumSearcher2::step)
+        .def_property_readonly("best_action_sequence", [](const search::BattleScumSearcher2 &s) { return std::vector(s.bestActionSequence.begin(), s.bestActionSequence.end()); })
+        .def("print_search_tree", &search::BattleScumSearcher2::printSearchTree)
+        .def("print_search_stack", &search::BattleScumSearcher2::printSearchStack);
+
+    pybind11::class_<search::Action> searchAction(m, "SearchAction");
+    searchAction.def(pybind11::init<>())
+        .def(pybind11::init<search::ActionType>())
+        .def(pybind11::init<search::ActionType, int>())
+        .def(pybind11::init<search::ActionType, int, int>())
+        .def("execute", &search::Action::execute)
+        .def("is_valid_action", &search::Action::isValidAction)
+        .def_property_readonly("action_type", &search::Action::getActionType)
+        .def_property_readonly("source_idx", &search::Action::getSourceIdx)
+        .def_property_readonly("target_idx", &search::Action::getTargetIdx)
+        //TODO this should be static .def_property_readonly("enumerate_card_select_actions", &search::Action::enumerateCardSelectActions)
+        .def("print_desc", &search::Action::printDesc);
 
     pybind11::class_<GameContext> gameContext(m, "GameContext");
-    gameContext.def(pybind11::init<CharacterClass, std::uint64_t, int>())
+    gameContext.def(pybind11::init<>())
+        .def(pybind11::init<CharacterClass, std::uint64_t, int>())
         .def("pick_reward_card", &sts::py::pickRewardCard, "choose to obtain the card at the specified index in the card reward list")
         .def("skip_reward_cards", &sts::py::skipRewardCards, "choose to skip the card reward (increases max_hp by 2 with singing bowl)")
         .def("get_card_reward", &sts::py::getCardReward, "return the current card reward list")
@@ -109,7 +134,8 @@ PYBIND11_MODULE(slaythespire, m) {
 
         .def_readwrite("shop_remove_count", &GameContext::shopRemoveCount)
         .def_readwrite("speedrun_pace", &GameContext::speedrunPace)
-        .def_readwrite("note_for_yourself_card", &GameContext::noteForYourselfCard);
+        .def_readwrite("note_for_yourself_card", &GameContext::noteForYourselfCard)
+        .def_readwrite("skip_battles", &GameContext::skipBattles);
     pybind11::class_<BattleContext> battleContext(m, "BattleContext");
     battleContext.def(pybind11::init<>())
         .def("init",
@@ -155,7 +181,13 @@ PYBIND11_MODULE(slaythespire, m) {
         )
         .def_property_readonly("outcome", [](const BattleContext &bc) { return bc.outcome; },
                "returns the battle outcome"
-        );
+        )
+        .def("__repr__", [](const BattleContext &bc) {
+            std::ostringstream oss;
+            oss << "<" << bc << ">";
+            return oss.str();
+        }, "returns a string representation of the BattleContext");
+;
 
     pybind11::class_<RelicInstance> relic(m, "Relic");
     relic.def_readwrite("id", &RelicInstance::id)
@@ -883,7 +915,19 @@ PYBIND11_MODULE(slaythespire, m) {
         .value("CIRCLET", RelicId::CIRCLET)
         .value("RED_CIRCLET", RelicId::RED_CIRCLET)
         .value("INVALID", RelicId::INVALID);
-
+    
+    pybind11::enum_<sts::search::ActionType> searchActionType(m, "SeachActionType");
+    searchActionType.value("CARD", sts::search::ActionType::CARD)
+        .value("POTION", sts::search::ActionType::POTION)
+        .value("SINGLE_CARD_SELECT", sts::search::ActionType::SINGLE_CARD_SELECT)
+        .value("MULTI_CARD_SELECT", sts::search::ActionType::MULTI_CARD_SELECT)
+        .value("END_TURN", sts::search::ActionType::END_TURN);
+    // add simhelper functions
+    m.def("get_card_id", &SimHelpers::getCardIdForString);
+    m.def("get_monster_i", &SimHelpers::getMonsterIdForString);
+    m.def("get_monster_status", &SimHelpers::getMonsterStatusForString);
+    m.def("get_monster_move", &SimHelpers::getMonsterMoveForString);
+    m.def("get_player_status", &SimHelpers::getPlayerStatusForString);
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
 #else

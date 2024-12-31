@@ -1215,7 +1215,7 @@ void BattleContext::useCard() {
 
     item.exhaustOnUse |= c.doesExhaust();
     ++player.cardsPlayedThisTurn;
-    std::cout << "using card: " << c.getName() << std::endl;
+    //std::cout << "using card: " << c.getName() << std::endl;
     switch (c.getType()) {
         case CardType::ATTACK:
             useAttackCard();
@@ -1531,6 +1531,9 @@ void BattleContext::useAttackCard() {
             break;
 
         //TODO test new cards
+        case CardId::MASTERFUL_STAB:
+            addToBot( Actions::AttackEnemy(t, calculateCardDamage(c, t, up ? 16 : 12)) );
+            break;
         /*case CardId::NEUTRALIZE:
             addToBot( Actions::AttackEnemy(t, calculateCardDamage(c, t, up ? 4 : 3)) );
             addToBot( Actions::DebuffEnemy<MS::WEAK>(t, up ? 2 : 1, false) );

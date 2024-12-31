@@ -25,13 +25,13 @@ namespace sts {
         return characterClassNames[static_cast<int>(cc)];
     }
     static CharacterClass getCharacterFromCommModName(const std::string &name) {
-        if (name.compare("IRONCLAD")) {
+        if (name.compare("IRONCLAD") == 0) {
             return CharacterClass::IRONCLAD;
-        }else if (name.compare("THE_SILENT")) {
+        }else if (name.compare("THE_SILENT") == 0) {
             return CharacterClass::SILENT;
-        } else if (name.compare("DEFECT")) {
+        } else if (name.compare("DEFECT") == 0) {
             return CharacterClass::DEFECT;
-        } else if (name.compare("WATCHER")) {
+        } else if (name.compare("WATCHER") == 0) {
             return CharacterClass::WATCHER;
         } else {
             return CharacterClass::INVALID;

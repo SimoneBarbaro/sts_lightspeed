@@ -178,7 +178,9 @@ void CardInstance::tookDamage() {
     } else {
         // masterful stab
         // todo check if it is above a limit
-        updateCost(1);
+        if (getId() == CardId::MASTERFUL_STAB) {
+            updateCost(1);
+        }
     }
 
 }

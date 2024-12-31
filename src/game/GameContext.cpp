@@ -72,6 +72,9 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
 }
 
 void GameContext::initFromJson(const nlohmann::json &json) {
+#ifdef sts_print_debug
+    std::cout << "Loading Game Context from " << json << std::endl;
+#endif
     seed = json["game_state"]["seed"];
 
     outcome = GameOutcome::UNDECIDED;
@@ -91,7 +94,9 @@ void GameContext::initFromJson(const nlohmann::json &json) {
     maxHp = json["game_state"]["max_hp"];
     gold = json["game_state"]["gold"];
     speedrunPace = false;
-
+#ifdef sts_print_debug
+    std::cout << "Initializing Game context with seed " << seed << "; character class " << static_cast<int>(cc) << "; Hp: " << curHp << "; maxHp" << maxHp << "; gold: " << gold << std::endl;
+#endif
     // the seed usage counts aren't sent by communication mod
     // set to 0 uses since it isn't relevant to simulating combats without perfect knowledge
     treasureRng = Random(seed);
@@ -132,8 +137,24 @@ void GameContext::initFromJson(const nlohmann::json &json) {
     }
 
     map = std::make_shared<Map>(Map::fromSeed(seed, ascension, act, true));
+#ifdef sts_print_debug
+    // print deck
+    for (int i = 0; i < deck.cards.size(); ++i) {
+        std::cout << "Deck " << i << ": " << deck.cards[i] << std::endl;
+    }
+    // print relics
+    for (int i = 0; i < relics.relics.size(); ++i) {
+        std::cout << "Relic " << i << ": " << sts::relicNames[static_cast<int>(relics.relics[i].id)] << std::endl;
+    }
+    // print potions
+    for (int i = 0; i < potions.size(); ++i) {
+        std::cout << "Potion " << i << ": " << sts::potionNames[static_cast<int>(potions[i])] << std::endl;
+    }
+    // print map
+    std::cout << map->toString() << std::endl;
+#endif
 
-    // TODO NEOW event!!!
+
     curRoom = sts::getRoomFromId(json["game_state"]["room_type"]);
 
     if (json["game_state"].contains("combat_state")) {
@@ -144,6 +165,14 @@ void GameContext::initFromJson(const nlohmann::json &json) {
     } else {
         screenState = screenStateFromId(json["game_state"]["screen_type"]);
     }
+
+    // TODO This seems to not work properly
+    /*if (json["game_state"]["screen_type"]["event_name"].get<std::string>().compare("Neow") == 0) {
+        curEvent = Event::NEOW;
+        info.neowRewards = Neow::getOptions(neowRng);
+        screenState = ScreenState::EVENT_SCREEN;
+
+    }*/
 
     generateMonsters();
 

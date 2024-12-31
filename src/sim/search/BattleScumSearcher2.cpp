@@ -27,7 +27,7 @@ void search::BattleScumSearcher2::search(int64_t simulations) {
     g_debug_scum_search = this;
 
     if (isTerminalState(*rootState)) {
-        auto evaluation = evaluateEndState(*rootState);
+        auto evaluation = evalFnc(*rootState);
         outcomePlayerHp = rootState->player.curHp;
         bestActionSequence = {};
 
@@ -86,7 +86,7 @@ void search::BattleScumSearcher2::step() {
 }
 
 void search::BattleScumSearcher2::updateFromPlayout(const std::vector<Node *> &stack, const std::vector<Action> &actionStack, const BattleContext &endState) {
-    const auto evaluation = evaluateEndState(endState);
+    const auto evaluation = evalFnc(endState);
 
     if (evaluation > bestActionValue) {
         bestActionSequence = actionStack;
