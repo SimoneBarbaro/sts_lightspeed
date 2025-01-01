@@ -147,7 +147,7 @@ void GameContext::initFromJson(const nlohmann::json &json) {
         std::cout << "Relic " << i << ": " << sts::relicNames[static_cast<int>(relics.relics[i].id)] << std::endl;
     }
     // print potions
-    for (int i = 0; i < potions.size(); ++i) {
+    for (int i = 0; i < potionCapacity; ++i) {
         std::cout << "Potion " << i << ": " << sts::potionNames[static_cast<int>(potions[i])] << std::endl;
     }
     // print map

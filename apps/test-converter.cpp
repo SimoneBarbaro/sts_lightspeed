@@ -35,7 +35,7 @@ int main() {
         std::cout << "Relic " << i << ": " << sts::relicNames[static_cast<int>(gc.relics.relics[i].id)] << std::endl;
     }
     // print potions
-    for (int i = 0; i < gc.potions.size(); ++i) {
+    for (int i = 0; i < gc.potionCapacity; ++i) {
         std::cout << "Potion " << i << ": " << sts::potionNames[static_cast<int>(gc.potions[i])] << std::endl;
     }
     // print map
@@ -54,6 +54,7 @@ int main() {
     if (gc.screenState == sts::ScreenState::BATTLE) {
         sts::BattleContext bc;
         bc.initFromJson(gc, json["game_state"]["combat_state"]);
+        std::cout << "Loaded battle context: " << bc << std::endl;
         bc.randomizeRngCounters();
         agent.playoutBattle(bc);
         bc.exitBattle(gc);

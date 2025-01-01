@@ -1437,6 +1437,7 @@ void Monster::takeTurn(BattleContext &bc) {     // todo, maybe for monsters that
         // ************ DARKLING ************
 
         case MMID::DARKLING_CHOMP:
+            // TODO is this not 2 hits?
             attackPlayerHelper(bc, asc2 ? 9 : 8);
             bc.addToBot( Actions::RollMove(idx) );
             break;

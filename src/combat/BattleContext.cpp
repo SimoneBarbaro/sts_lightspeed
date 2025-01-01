@@ -5,7 +5,7 @@
 #include <string>
 
 #include "combat/BattleContext.h"
-#include "combat/BattleContext.h"
+#include "constants/MonsterMoveConvert.h"
 #include "game/GameContext.h"
 #include "game/Game.h"
 
@@ -249,11 +249,10 @@ void sts::BattleContext::initMonstersFormJson(nlohmann::json_abi_v3_11_3::json &
         {
             monsters.monstersAlive--;
         }
-        // TODO figure out what this is
-        m.at("move_id").get_to(monster->moveHistory[0]);
+        monster->moveHistory[0] = sts::getMonsterMoveIdFromGameId(monster->id, m.at("move_id").get<int>());
         if (m.contains("last_move_id"))
         {
-            m.at("last_move_id").get_to(monster->moveHistory[1]);
+            monster->moveHistory[1] = sts::getMonsterMoveIdFromGameId(monster->id, m.at("last_move_id").get<int>());
         }
         if (m.contains("miscInt"))
         {
