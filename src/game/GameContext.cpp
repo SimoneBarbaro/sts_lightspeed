@@ -3977,20 +3977,19 @@ void GameContext::regainControl() {
     regainControlAction(*this);
 }
 
-void GameContext::randomizeRngCounters() {
-    miscRng.setCounter(miscRng.nextInt());
-    aiRng.setCounter(miscRng.nextInt());
-    cardRandomRng.setCounter(miscRng.nextInt());
-    cardRng.setCounter(miscRng.nextInt());
-    eventRng.setCounter(miscRng.nextInt());
-    mathUtilRng.setCounter(miscRng.nextInt());
-    merchantRng.setCounter(miscRng.nextInt());
-    miscRng.setCounter(miscRng.nextInt());
-    monsterHpRng.setCounter(miscRng.nextInt());
-    monsterRng.setCounter(miscRng.nextInt());
-    neowRng.setCounter(miscRng.nextInt());
-    potionRng.setCounter(miscRng.nextInt());
-    relicRng.setCounter(miscRng.nextInt());
-    shuffleRng.setCounter(miscRng.nextInt());
-    treasureRng.setCounter(miscRng.nextInt());
+void GameContext::randomizeRngCounters(int counterOffset) {
+    miscRng.setCounter(counterOffset);
+    aiRng.setCounter(miscRng.nextLong(1000));
+    cardRng.setCounter(miscRng.nextLong(1000));
+    eventRng.setCounter(miscRng.nextLong(1000));
+    mathUtilRng.setCounter(miscRng.nextLong(1000));
+    merchantRng.setCounter(miscRng.nextLong(1000));
+    miscRng.setCounter(miscRng.nextLong(1000));
+    monsterHpRng.setCounter(miscRng.nextLong(1000));
+    monsterRng.setCounter(miscRng.nextLong(1000));
+    neowRng.setCounter(miscRng.nextLong(1000));
+    potionRng.setCounter(miscRng.nextLong(1000));
+    relicRng.setCounter(miscRng.nextLong(1000));
+    shuffleRng.setCounter(miscRng.nextLong(1000));
+    treasureRng.setCounter(miscRng.nextLong(1000));
 }

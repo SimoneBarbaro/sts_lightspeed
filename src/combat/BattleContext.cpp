@@ -3515,13 +3515,16 @@ void BattleContext::chooseGambleCards(const fixed_list<int, 10> &idxs) {
     }
 }
 
-void BattleContext::randomizeRngCounters() {
-    miscRng.setCounter(miscRng.nextInt());
-    aiRng.setCounter(aiRng.nextInt());
-    cardRandomRng.setCounter(cardRandomRng.nextInt());
-    shuffleRng.setCounter(shuffleRng.nextInt());
-    monsterHpRng.setCounter(monsterHpRng.nextInt());
-    potionRng.setCounter(potionRng.nextInt());
+void BattleContext::randomizeRngCounters(int counterOffset) {
+    miscRng.setCounter(counterOffset);
+    aiRng.setCounter(miscRng.nextLong(1000));
+    cardRandomRng.setCounter(miscRng.nextLong(1000));
+    shuffleRng.setCounter(miscRng.nextLong(1000));
+    monsterHpRng.setCounter(miscRng.nextLong(1000));
+    potionRng.setCounter(miscRng.nextLong(1000));
+    // Force shuffle draw pile to ensure random draw
+    // TODO relic that tells us draw pile order?
+    addToBot(Actions::ShuffleDrawPile());
 }
 
 namespace sts {
