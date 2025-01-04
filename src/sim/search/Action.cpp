@@ -422,6 +422,12 @@ void executeMultiCardSelectActionHelper(BattleContext &bc, search::Action a) {
 }
 
 void search::Action::execute(BattleContext &bc) const {
+    search::Action::submitAction(bc);
+    bc.inputState = InputState::EXECUTING_ACTIONS;
+    bc.executeActions();
+}
+
+void search::Action::submitAction(BattleContext &bc) const {
 #ifdef sts_asserts
     if (!isValidAction(bc)) {
         std::cerr << bc.seed << " " << static_cast<int>(getActionType()) << " " << getSourceIdx() << " " << getTargetIdx() << std::endl;
@@ -463,9 +469,10 @@ void search::Action::execute(BattleContext &bc) const {
             break;
     }
 
-    bc.inputState = InputState::EXECUTING_ACTIONS;
-    bc.executeActions();
+    //bc.inputState = InputState::EXECUTING_ACTIONS;
+    //bc.executeActions();
 }
+
 
 template <typename ForwardIt>
 void setupCardOptionsHelper(std::vector<search::Action> &actions, const ForwardIt begin, const ForwardIt end, const std::function<bool(const CardInstance &)> &p= nullptr) {
@@ -473,6 +480,151 @@ void setupCardOptionsHelper(std::vector<search::Action> &actions, const ForwardI
         const auto &c = begin[i];
         if (!p || (p(c))) {
             actions.emplace_back(search::ActionType::SINGLE_CARD_SELECT, i);
+        }
+    }
+}
+
+std::vector<search::Action> search::Action::enumerateAllAvailableActions(const BattleContext &bc) {
+    std::vector<search::Action> actions;
+    switch (bc.inputState) {
+        case InputState::PLAYER_NORMAL:
+            search::Action::enumerateCardActions(bc, actions);
+            search::Action::enumeratePotionActions(bc, actions);
+            actions.emplace_back(search::ActionType::END_TURN);
+            break;
+
+        case InputState::CARD_SELECT:
+            return search::Action::enumerateCardSelectActions(bc);
+
+        default:
+#ifdef sts_asserts
+            assert(false);
+#endif
+            break;
+    }
+    if (bc.isCardPlayAllowed()) {
+        for (int handIdx = 0; handIdx < bc.cards.cardsInHand; ++handIdx) {
+            const auto &c = bc.cards.hand[handIdx];
+            if (!c.canUseOnAnyTarget(bc)) {
+                continue;
+            }
+
+            for (int targetIdx = 0; targetIdx < 5; ++targetIdx) {
+                if (c.canUse(bc, targetIdx, false)) {
+                    actions.emplace_back(search::ActionType::CARD, handIdx, targetIdx);
+                }
+            }
+        }
+    }
+
+    for (int potionIdx = 0; potionIdx < bc.potionCount; ++potionIdx) {
+        const auto p = bc.potions[potionIdx];
+        if (p == Potion::INVALID || p == Potion::EMPTY_POTION_SLOT) {
+            continue;
+        }
+
+        if (!potionRequiresTarget(p)) {
+            actions.emplace_back(search::ActionType::POTION, potionIdx);
+        } else {
+            for (int targetIdx = 0; targetIdx < 5; ++targetIdx) {
+                if (bc.monsters.arr[targetIdx].isTargetable()) {
+                    actions.emplace_back(search::ActionType::POTION, potionIdx, targetIdx);
+                }
+            }
+        }
+    }
+
+    //actions.emplace_back(search::ActionType::END_TURN);
+
+    return actions;
+}
+
+void search::Action::enumerateCardActions(const BattleContext &bc, std::vector<search::Action> &actions) {
+    if (!bc.isCardPlayAllowed()) {
+        return;
+    }
+
+    fixed_list<std::pair<int,int>, 10> playableHandIdxs;
+    for (int handIdx = 0; handIdx < bc.cards.cardsInHand; ++handIdx) {
+        const auto &c = bc.cards.hand[handIdx];
+        if (!c.canUseOnAnyTarget(bc)) {
+            continue;
+        }
+
+        bool isUniqueAction = true;
+
+        if (handIdx > 0) {
+            const auto &lastCard = bc.cards.hand[handIdx-1];
+
+            bool isEqualToLastCard = c.id == lastCard.id &&
+                    c.getUpgradeCount() == lastCard.getUpgradeCount() &&
+                    // both should be less than deck size c.uniqueId < bc.cards.deck
+                    c.costForTurn == lastCard.costForTurn &&
+                    c.cost == lastCard.cost &&
+                    c.freeToPlayOnce == lastCard.freeToPlayOnce &&
+                    c.specialData == lastCard.specialData;
+
+            if (isEqualToLastCard) {
+                isUniqueAction = false;
+            }
+        }
+    }
+
+    //std::sort(playableHandIdxs.begin(), playableHandIdxs.end(), [](auto a, auto b) { return a.second < b.second; });
+
+    for (auto pair : playableHandIdxs) {
+        const auto handIdx = pair.first;
+        const auto &c = bc.cards.hand[handIdx];
+
+        if (c.requiresTarget()) {
+            for (int tIdx = bc.monsters.monsterCount-1; tIdx >= 0; --tIdx) {
+                if (!bc.monsters.arr[tIdx].isTargetable()) {
+                    continue;
+                }
+                actions.push_back({search::Action(search::ActionType::CARD, handIdx, tIdx)});
+            }
+        } else {
+            actions.push_back({search::Action(search::ActionType::CARD, handIdx)});
+        }
+    }
+
+}
+
+void search::Action::enumeratePotionActions(const BattleContext &bc, std::vector<search::Action> &actions) {
+
+    const auto hasValidTarget = bc.monsters.getTargetableCount() > 0;
+
+    int foundPotions = 0;
+    for (int pIdx = 0; pIdx < bc.potionCapacity; ++pIdx) {
+
+        const auto p = bc.potions[pIdx];
+        if (p == Potion::EMPTY_POTION_SLOT) {
+            continue;
+        }
+        ++foundPotions;
+
+        // not enumerating the discard of a potion if it can be used
+        if (p == Potion::FAIRY_POTION) {
+            actions.push_back({search::Action(search::ActionType::POTION, pIdx, -1)});
+            continue;
+        }
+
+        if (!potionRequiresTarget(p)) {
+            actions.push_back({search::Action(search::ActionType::POTION, pIdx)});
+            continue;
+        }
+
+        // potion requires target
+        if (!hasValidTarget) {
+            actions.push_back({search::Action(search::ActionType::POTION, pIdx, -1)});
+            continue;
+        }
+
+        // there is a valid target
+        for (int tIdx = 0; tIdx < bc.monsters.monsterCount; ++tIdx) {
+            if (bc.monsters.arr[tIdx].isTargetable()) {
+                actions.push_back({search::Action(search::ActionType::POTION, pIdx, tIdx)});
+            }
         }
     }
 }
@@ -538,6 +690,7 @@ std::vector<search::Action> search::Action::enumerateCardSelectActions(const Bat
                                    });
             break;
 
+        // TODO maybe have exhaust/discard many be a sequence of single card selects?
         case CardSelectTask::EXHAUST_MANY:
         case CardSelectTask::GAMBLE:
             // just dont deal with this right now

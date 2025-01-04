@@ -56,6 +56,13 @@ namespace sts::search {
         std::ostream& printDesc(std::ostream &os, const sts::BattleContext &bc) const;
         void execute(BattleContext &bc) const;
 
+        void submitAction(BattleContext &bc) const;
+
+        static std::vector<search::Action> enumerateAllAvailableActions(const BattleContext &bc);
+
+        static void enumerateCardActions(const BattleContext &bc, std::vector<search::Action> &actions);
+
+        static void enumeratePotionActions(const BattleContext &bc, std::vector<search::Action> &actions);
 
         static std::vector<Action> enumerateCardSelectActions(const BattleContext &bc);
     };
