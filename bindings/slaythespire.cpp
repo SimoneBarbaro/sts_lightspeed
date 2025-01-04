@@ -58,12 +58,17 @@ PYBIND11_MODULE(slaythespire, m) {
         .def(pybind11::init<search::ActionType, int>())
         .def(pybind11::init<search::ActionType, int, int>())
         .def("execute", &search::Action::execute)
+        .def("submit", &search::Action::submitAction)
         .def("is_valid_action", &search::Action::isValidAction)
         .def_property_readonly("action_type", &search::Action::getActionType)
         .def_property_readonly("source_idx", &search::Action::getSourceIdx)
         .def_property_readonly("target_idx", &search::Action::getTargetIdx)
-        //TODO this should be static .def_property_readonly("enumerate_card_select_actions", &search::Action::enumerateCardSelectActions)
-        .def("print_desc", &search::Action::printDesc);
+        .def_property_readonly("value", [](const search::Action &a) { return a.bits; })
+        .def("print_desc", [](const search::Action &a, const BattleContext &bc) {
+            std::ostringstream oss;
+            a.printDesc(oss, bc);
+            return oss.str();
+        });
 
     pybind11::class_<GameContext> gameContext(m, "GameContext");
     gameContext.def(pybind11::init<>())
@@ -138,6 +143,7 @@ PYBIND11_MODULE(slaythespire, m) {
         .def_readwrite("skip_battles", &GameContext::skipBattles);
     pybind11::class_<BattleContext> battleContext(m, "BattleContext");
     battleContext.def(pybind11::init<>())
+        .def(pybind11::init<const BattleContext &>())
         .def("init",
             [](BattleContext &bc, const GameContext &gc) {bc.init(gc);},
             "initialize the BattleContext from a GameContext")
@@ -147,17 +153,41 @@ PYBIND11_MODULE(slaythespire, m) {
         .def("randomize_rng_counters",
             &BattleContext::randomizeRngCounters,
             "randomize the rng counters")
-        .def("exit_battle", 
-            &BattleContext::exitBattle, 
+        .def("exit_battle",
+            &BattleContext::exitBattle,
             "exit the battle and update the GameContext")
-        .def_property_readonly("energy",
-            [](const BattleContext &bc) { return bc.player.energy; },
-            "returns a copy of the list of cards in the player's hand"
+        .def_property_readonly("player",
+            [](const BattleContext &bc) { return bc.player; },
+            "returns the player object"
+        )
+        .def_property_readonly("monsters_alive_count",
+            [](const BattleContext &bc) { return bc.monsters.getAliveCount(); },
+            "returns the number of monsters that are alive"
+        )
+        .def_property_readonly("monsters_count", 
+            [](const BattleContext &bc) { return bc.monsters.monsterCount; },
+            "returns the number of monsters in this encounter"
+        )
+        .def_property_readonly("monsters",
+            [](const BattleContext &bc) { 
+                return std::vector(bc.monsters.arr.begin(), bc.monsters.arr.begin()+bc.monsters.monsterCount);
+            },
+            "returns the monsters in this encounter"
         )
         .def_property_readonly("hand", 
             [](const BattleContext &bc) { return std::vector(bc.cards.hand.begin(), bc.cards.hand.end()); },
             "returns a copy of the list of cards in the player's hand"
         )
+        .def_property_readonly("potions", 
+            [](const BattleContext &bc) { return std::vector(bc.potions.begin(), bc.potions.begin() + bc.potionCount); },
+            "returns a copy of the list of cards in the player's hand"
+        )
+        .def_property_readonly("turn", 
+            [](const BattleContext &bc){return bc.turn;},
+            "returns the turn number")
+        .def_property_readonly("cards_drawn", 
+            [](const BattleContext &bc){return bc.cardsDrawn;},
+            "returns the number of card drawn")
         .def("add_to_bot_card", 
             &BattleContext::addToBotCard, 
             "add a card to the bot's action queue")
@@ -176,18 +206,70 @@ PYBIND11_MODULE(slaythespire, m) {
                 bc.executeActions();
             },
             "execute the actions in the bot's action queue")
+        .def("is_input_ready", [](const BattleContext &bc) { return bc.inputState == InputState::PLAYER_NORMAL || bc.inputState == InputState::CARD_SELECT; },
+            "returns whether the current input state is ready for player input"
+        )
+        .def("input_state", [](const BattleContext &bc) { return bc.inputState; },
+            "returns the current input state"
+        )
         .def_property_readonly("encounter", [](const BattleContext &bc) { return bc.encounter; },
                "returns the current monster encounter"
         )
         .def_property_readonly("outcome", [](const BattleContext &bc) { return bc.outcome; },
                "returns the battle outcome"
         )
+        .def("get_available_actions", [](const BattleContext &bc) {
+            auto actions = search::Action::enumerateAllAvailableActions(bc);
+            return std::vector(actions.begin(), actions.end());
+            }, "returns a list of valid actions for the current BattleContext")
+        .def("is_same_rng_counters", [](const BattleContext &bc, const BattleContext &other) {
+            return bc.miscRng.counter == other.miscRng.counter 
+                && bc.shuffleRng.counter == other.shuffleRng.counter
+                && bc.aiRng.counter == other.aiRng.counter
+                && bc.cardRandomRng.counter == other.cardRandomRng.counter
+                && bc.monsterHpRng.counter == other.monsterHpRng.counter
+                && bc.potionRng.counter == other.potionRng.counter;
+        }, "returns whether the rng counters of this and an other battle context are the same")
         .def("__repr__", [](const BattleContext &bc) {
             std::ostringstream oss;
-            oss << "<" << bc << ">";
+            oss << bc;
             return oss.str();
         }, "returns a string representation of the BattleContext");
-;
+
+    pybind11::class_<Player> player(m, "Player");
+    player.def(pybind11::init<>())
+        .def_property_readonly("hp", [](const Player &p) { return p.curHp; })
+        .def_property_readonly("max_hp", [](const Player &p) { return p.maxHp; })
+        .def_property_readonly("energy", [](const Player &p) { return p.energy; })
+        .def_property_readonly("block", [](const Player &p) { return p.block; })
+        .def_property_readonly("gold", [](const Player &p) { return p.gold; })
+        .def_property_readonly("energy_per_turn", [](const Player &p) { return p.energyPerTurn; })
+        .def_property_readonly("draw_per_turn", [](const Player &p) { return p.cardDrawPerTurn; })
+        .def_property_readonly("artifact", [](const Player &p) { return p.artifact; })
+        .def_property_readonly("dexterity", [](const Player &p) { return p.dexterity; })
+        .def_property_readonly("focus", [](const Player &p) { return p.focus; })
+        .def_property_readonly("strength", [](const Player &p) { return p.strength; });
+    
+    pybind11::class_<Monster> monster(m, "Monster");
+    monster.def(pybind11::init<>())
+        .def_property_readonly("name", [](const Monster &m) { return m.getName(); })
+        .def_property_readonly("hp", [](const Monster &m) { return m.curHp; })
+        .def_property_readonly("max_hp", [](const Monster &m) { return m.maxHp; })
+        .def_property_readonly("block", [](const Monster &m) { return m.block; })
+        .def_property_readonly("is_targetable", [](const Monster &m) { return m.isTargetable(); })
+        .def_property_readonly("is_alive", [](const Monster &m) { return m.isAlive(); })
+        .def_property_readonly("is_escaping", [](const Monster &m) { return m.isEscaping(); })
+        .def_property_readonly("is_attacking", [](const Monster &m) { return m.isAttacking(); })
+        .def_property_readonly("is_minion", [](const Monster &m) {return m.hasStatus<MS::MINION>() && m.id != MonsterId::INVALID;})
+        //TODO .def_property_readonly("intent", [](const Monster &m) { return m.getName(); })
+        ;
+    pybind11::class_<CardInstance> cardInstance(m, "CardInstance");
+    cardInstance.def(pybind11::init<>())
+        .def_property_readonly("id", &CardInstance::getId)
+        .def_property_readonly("upgraded", &CardInstance::isUpgraded)
+        .def_property_readonly("upgradable", &CardInstance::canUpgrade)
+        .def_property_readonly("is_strikeCard", &CardInstance::isStrikeCard)
+        .def_property_readonly("type", &CardInstance::getType);
 
     pybind11::class_<RelicInstance> relic(m, "Relic");
     relic.def_readwrite("id", &RelicInstance::id)
@@ -916,6 +998,87 @@ PYBIND11_MODULE(slaythespire, m) {
         .value("RED_CIRCLET", RelicId::RED_CIRCLET)
         .value("INVALID", RelicId::INVALID);
     
+    pybind11::enum_<Potion> potionEnum(m, "Potion");
+    potionEnum.value("INVALID", Potion::INVALID)
+        .value("EMPTY_POTION_SLOT", Potion::EMPTY_POTION_SLOT)
+        .value("AMBROSIA", Potion::AMBROSIA)
+        .value("ANCIENT_POTION", Potion::ANCIENT_POTION)
+        .value("ATTACK_POTION", Potion::ATTACK_POTION)
+        .value("BLESSING_OF_THE_FORGE", Potion::BLESSING_OF_THE_FORGE)
+        .value("BLOCK_POTION", Potion::BLOCK_POTION)
+        .value("BLOOD_POTION", Potion::BLOOD_POTION)
+        .value("BOTTLED_MIRACLE", Potion::BOTTLED_MIRACLE)
+        .value("COLORLESS_POTION", Potion::COLORLESS_POTION)
+        .value("CULTIST_POTION", Potion::CULTIST_POTION)
+        .value("CUNNING_POTION", Potion::CUNNING_POTION)
+        .value("DEXTERITY_POTION", Potion::DEXTERITY_POTION)
+        .value("DISTILLED_CHAOS", Potion::DISTILLED_CHAOS)
+        .value("DUPLICATION_POTION", Potion::DUPLICATION_POTION)
+        .value("ELIXIR_POTION", Potion::ELIXIR_POTION)
+        .value("ENERGY_POTION", Potion::ENERGY_POTION)
+        .value("ENTROPIC_BREW", Potion::ENTROPIC_BREW)
+        .value("ESSENCE_OF_DARKNESS", Potion::ESSENCE_OF_DARKNESS)
+        .value("ESSENCE_OF_STEEL", Potion::ESSENCE_OF_STEEL)
+        .value("EXPLOSIVE_POTION", Potion::EXPLOSIVE_POTION)
+        .value("FAIRY_POTION", Potion::FAIRY_POTION)
+        .value("FEAR_POTION", Potion::FEAR_POTION)
+        .value("FIRE_POTION", Potion::FIRE_POTION)
+        .value("FLEX_POTION", Potion::FLEX_POTION)
+        .value("FOCUS_POTION", Potion::FOCUS_POTION)
+        .value("FRUIT_JUICE", Potion::FRUIT_JUICE)
+        .value("GAMBLERS_BREW", Potion::GAMBLERS_BREW)
+        .value("GHOST_IN_A_JAR", Potion::GHOST_IN_A_JAR)
+        .value("HEART_OF_IRON", Potion::HEART_OF_IRON)
+        .value("LIQUID_BRONZE", Potion::LIQUID_BRONZE)
+        .value("LIQUID_MEMORIES", Potion::LIQUID_MEMORIES)
+        .value("POISON_POTION", Potion::POISON_POTION)
+        .value("POTION_OF_CAPACITY", Potion::POTION_OF_CAPACITY)
+        .value("POWER_POTION", Potion::POWER_POTION)
+        .value("REGEN_POTION", Potion::REGEN_POTION)
+        .value("SKILL_POTION", Potion::SKILL_POTION)
+        .value("SMOKE_BOMB", Potion::SMOKE_BOMB)
+        .value("SNECKO_OIL", Potion::SNECKO_OIL)
+        .value("SPEED_POTION", Potion::SPEED_POTION)
+        .value("STANCE_POTION", Potion::STANCE_POTION)
+        .value("STRENGTH_POTION", Potion::STRENGTH_POTION)
+        .value("SWIFT_POTION", Potion::SWIFT_POTION)
+        .value("WEAK_POTION", Potion::WEAK_POTION);
+
+    pybind11::enum_<InputState> inputStateEnum(m, "InputState");
+    inputStateEnum.value("EXECUTING_ACTIONS", InputState::EXECUTING_ACTIONS)
+        .value("PLAYER_NORMAL", InputState::PLAYER_NORMAL)
+        .value("CARD_SELECT", InputState::CARD_SELECT)
+        .value("CHOOSE_STANCE_ACTION", InputState::CHOOSE_STANCE_ACTION)
+        .value("CHOOSE_TOOLBOX_COLORLESS_CARD", InputState::CHOOSE_TOOLBOX_COLORLESS_CARD)
+        .value("CHOOSE_EXHAUST_POTION_CARDS", InputState::CHOOSE_EXHAUST_POTION_CARDS)
+        .value("CHOOSE_GAMBLING_CARDS", InputState::CHOOSE_GAMBLING_CARDS)
+        .value("CHOOSE_ENTROPIC_BREW_DISCARD_POTIONS", InputState::CHOOSE_ENTROPIC_BREW_DISCARD_POTIONS)
+        .value("CHOOSE_DISCARD_CARDS", InputState::CHOOSE_DISCARD_CARDS)
+        .value("SCRY", InputState::SCRY)
+        .value("SELECT_ENEMY_ACTIONS", InputState::SELECT_ENEMY_ACTIONS)
+        .value("FILL_RANDOM_POTIONS", InputState::FILL_RANDOM_POTIONS)
+        .value("SHUFFLE_INTO_DRAW_BURN", InputState::SHUFFLE_INTO_DRAW_BURN)
+        .value("SHUFFLE_INTO_DRAW_VOID", InputState::SHUFFLE_INTO_DRAW_VOID)
+        .value("SHUFFLE_INTO_DRAW_DAZED", InputState::SHUFFLE_INTO_DRAW_DAZED)
+        .value("SHUFFLE_INTO_DRAW_WOUND", InputState::SHUFFLE_INTO_DRAW_WOUND)
+        .value("SHUFFLE_INTO_DRAW_SLIMED", InputState::SHUFFLE_INTO_DRAW_SLIMED)
+        .value("SHUFFLE_INTO_DRAW_ALL_STATUS", InputState::SHUFFLE_INTO_DRAW_ALL_STATUS)
+        .value("SHUFFLE_CUR_CARD_INTO_DRAW", InputState::SHUFFLE_CUR_CARD_INTO_DRAW)
+        .value("SHUFFLE_DISCARD_TO_DRAW", InputState::SHUFFLE_DISCARD_TO_DRAW)
+        .value("INITIAL_SHUFFLE", InputState::INITIAL_SHUFFLE)
+        
+        .value("CREATE_RANDOM_CARD_IN_HAND_POWER", InputState::CREATE_RANDOM_CARD_IN_HAND_POWER)
+        .value("CREATE_RANDOM_CARD_IN_HAND_COLORLESS", InputState::CREATE_RANDOM_CARD_IN_HAND_COLORLESS)
+        .value("CREATE_RANDOM_CARD_IN_HAND_DEAD_BRANCH", InputState::CREATE_RANDOM_CARD_IN_HAND_DEAD_BRANCH)
+        .value("SELECT_CARD_IN_HAND_EXHAUST", InputState::SELECT_CARD_IN_HAND_EXHAUST)
+        .value("GENERATE_NILRY_CARDS", InputState::GENERATE_NILRY_CARDS)
+        .value("EXHAUST_RANDOM_CARD_IN_HAND", InputState::EXHAUST_RANDOM_CARD_IN_HAND)
+        .value("SELECT_STRANGE_SPOON_PROC", InputState::SELECT_STRANGE_SPOON_PROC)
+        .value("SELECT_ENEMY_THE_SPECIMEN_APPLY_POISON", InputState::SELECT_ENEMY_THE_SPECIMEN_APPLY_POISON)
+        .value("SELECT_WARPED_TONGS_CARD", InputState::SELECT_WARPED_TONGS_CARD)
+        .value("CREATE_ENCHIRIDION_POWER", InputState::CREATE_ENCHIRIDION_POWER)
+        .value("SELECT_CONFUSED_CARD_COST", InputState::SELECT_CONFUSED_CARD_COST);
+
     pybind11::enum_<sts::search::ActionType> searchActionType(m, "SeachActionType");
     searchActionType.value("CARD", sts::search::ActionType::CARD)
         .value("POTION", sts::search::ActionType::POTION)
