@@ -23,7 +23,7 @@ namespace sts {
         DEFEND_DEBUFF,
         DEFEND_BUFF,
         ESCAPE,
-        MAGIC,
+        //MAGIC,
         NONE,
         SLEEP,
         STUN,
