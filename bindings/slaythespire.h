@@ -8,6 +8,12 @@
 #include <vector>
 #include <unordered_map>
 #include <array>
+#include "constants/PlayerStatusEffects.h"
+#include "constants/Relics.h"
+#include "constants/Cards.h"
+#include "constants/MonsterMoves.h"
+#include "combat/Player.h"
+#include "combat/Monster.h"
 
 #include "constants/Rooms.h"
 
@@ -15,9 +21,22 @@ namespace sts {
 
     struct NNInterface {
         static constexpr int observation_space_size = 412;
+
+        static constexpr int numCards = static_cast<int>(CardId::ZAP);
+
+        static constexpr int battle_observation_size = 9 // Basic player features
+            // Player status features
+            + static_cast<int>(PlayerStatus::THE_BOMB) 
+            // hand+draw+discard+exhaust pile one hot encodings of each card
+            + static_cast<int>(NNInterface::numCards*2*13)
+            // Relics one hot encodings
+            + static_cast<int>(RelicId::INVALID)
+            // Monster features + monster statuses + monster intents and damage info
+            + 5 * (3 + 13 + static_cast<int>(Intent::UNKNOWN) + 2);
         static constexpr int playerHpMax = 200;
         static constexpr int playerGoldMax = 1800;
         static constexpr int cardCountMax = 7;
+        
 
         const std::vector<int> cardEncodeMap;
         const std::unordered_map<MonsterEncounter, int> bossEncodeMap;
@@ -27,7 +46,10 @@ namespace sts {
         NNInterface();
 
         int getCardIdx(Card c) const;
-        std::array<int,observation_space_size> getObservationMaximums() const;
+        std::array<int, NNInterface::battle_observation_size> encodeBattle(const GameContext &gc, const BattleContext &bc) const;
+        void encodePlayer(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const Player &player) const;
+        void encodeMonster(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const Monster &monster, bool hasRunicDome, const BattleContext &bc) const;
+        std::array<int, observation_space_size> getObservationMaximums() const;
         std::array<int,observation_space_size> getObservation(const GameContext &gc) const;
 
 

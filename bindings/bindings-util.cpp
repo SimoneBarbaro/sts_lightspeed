@@ -33,6 +33,113 @@ namespace sts {
         return idx;
     }
 
+    std::array<int,NNInterface::battle_observation_size> NNInterface::encodeBattle(const GameContext &gc, const BattleContext &bc) const {
+        std::array<int,NNInterface::battle_observation_size> ret {};
+        int offset = 0;
+        encodePlayer(ret, offset, bc.player);
+        // 10 cards in hand, need positional encoding
+        for (CardInstance c : bc.cards.hand) {
+            int idx = static_cast<int>(c.getId());
+            idx += c.isUpgraded() ? NNInterface::numCards : 0;
+            ret[offset + idx] = 1;
+            offset += NNInterface::numCards*2;
+        }
+        // encode counts of cards for draw, exhaust and discard piles
+        for (CardInstance c : bc.cards.drawPile) {
+            int idx = static_cast<int>(c.getId());
+            idx += c.isUpgraded() ? NNInterface::numCards : 0;
+            ret[offset + idx] += 1;
+        }
+        offset += NNInterface::numCards*2;
+        for (CardInstance c : bc.cards.discardPile) {
+            int idx = static_cast<int>(c.getId());
+            idx += c.isUpgraded() ? NNInterface::numCards : 0;
+            ret[offset + idx] += 1;
+        }
+        offset += NNInterface::numCards*2;
+        for (CardInstance c : bc.cards.exhaustPile) {
+            int idx = static_cast<int>(c.getId());
+            idx += c.isUpgraded() ? NNInterface::numCards : 0;
+            ret[offset + idx] += 1;
+        }
+
+        // Encode relics
+        for (auto r : gc.relics.relics) {
+            int encodeIdx = offset + static_cast<int>(r.id);
+            ret[encodeIdx] = 1;
+        }
+        // Encode monsters
+        for (int i = 0; i < bc.monsters.monsterCount; i++) {
+            if (!bc.monsters.arr[i].isDeadOrEscaped())
+                NNInterface::encodeMonster(ret, offset, bc.monsters.arr[i], bc.player.hasRelic<RelicId::RUNIC_DOME>(), bc);
+        }
+        return ret;
+    }
+
+    void NNInterface::encodePlayer(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const sts::Player &player) const
+    {
+        ret[offset++] = player.curHp;
+        ret[offset++] = player.maxHp;
+        ret[offset++] = player.block;
+        ret[offset++] = player.energy;
+        // TODO maybe one hot encoding is better?
+        ret[offset++] = static_cast<int>(player.cc);
+        // These seems to be processed separately from the rest?
+        ret[offset++] = player.getStatus<PlayerStatus::ARTIFACT>();
+        ret[offset++] = player.getStatus<PlayerStatus::DEXTERITY>();
+        ret[offset++] = player.getStatus<PlayerStatus::STRENGTH>();
+        ret[offset++] = player.getStatus<PlayerStatus::FOCUS>();
+        // TODO orbs
+        // All the other statuses are in statusMap
+        for (auto status : player.statusMap)
+        {
+            ret[offset + static_cast<int>(status.first)] = status.second;
+        }
+    }
+
+    void NNInterface::encodeMonster(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const sts::Monster &monster, bool hasRunicDome, const BattleContext &bc) const
+    {
+        ret[offset++] = monster.curHp;
+        ret[offset++] = monster.maxHp;
+        ret[offset++] = monster.block;
+        ret[offset++] = monster.getStatus<MonsterStatus::ARTIFACT>();
+        ret[offset++] = monster.getStatus<MonsterStatus::BLOCK_RETURN>();
+        ret[offset++] = monster.getStatus<MonsterStatus::CHOKED>();
+        ret[offset++] = monster.getStatus<MonsterStatus::CORPSE_EXPLOSION>();
+        
+        ret[offset++] = monster.getStatus<MonsterStatus::LOCK_ON>();
+        ret[offset++] = monster.getStatus<MonsterStatus::MARK>();
+        ret[offset++] = monster.getStatus<MonsterStatus::METALLICIZE>();
+        ret[offset++] = monster.getStatus<MonsterStatus::PLATED_ARMOR>();
+        ret[offset++] = monster.getStatus<MonsterStatus::POISON>();
+        ret[offset++] = monster.getStatus<MonsterStatus::REGEN>();
+        ret[offset++] = monster.getStatus<MonsterStatus::SHACKLED>();
+        ret[offset++] = monster.getStatus<MonsterStatus::VULNERABLE>();
+        ret[offset++] = monster.getStatus<MonsterStatus::WEAK>();
+
+        ret[offset++] = monster.uniquePower0;
+        ret[offset++] = monster.uniquePower1;
+        // one hot encoding monster type
+        int monsterIdx = static_cast<int>(monster.id);
+        ret[offset + monsterIdx] = 1;
+        Intent monsterIntent = getMoveIntent(monster.moveHistory[0]);
+        if (hasRunicDome) {
+            monsterIntent = Intent::UNKNOWN;
+        }
+        int intentIdx = static_cast<int>(monsterIntent);
+        ret[offset+intentIdx] = 1;
+        if (monsterIntent == Intent::ATTACK || monsterIntent == Intent::ATTACK_BUFF || monsterIntent == Intent::ATTACK_DEBUFF || monsterIntent == Intent::ATTACK_DEFEND) {
+            // TODO check if this is the correct damage info
+            DamageInfo damage = monster.getMoveBaseDamage(bc);
+            ret[offset++] = damage.attackCount;
+            ret[offset++] = damage.damage;
+        } else { // We still want to increase offset when no damage is done
+            offset += 2;
+        }
+        //int monsterMoveIdx = static_cast<int>(monster.moveHistory[0]);
+        //ret[offset + monsterMoveIdx] = 1;
+    }
+
     std::array<int,NNInterface::observation_space_size> NNInterface::getObservation(const GameContext &gc) const {
         std::array<int,observation_space_size> ret {};
 

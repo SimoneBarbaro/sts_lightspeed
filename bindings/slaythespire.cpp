@@ -30,7 +30,9 @@ PYBIND11_MODULE(slaythespire, m) {
     m.def("getNNInterface", &sts::NNInterface::getInstance, "gets the NNInterface object");
 
     pybind11::class_<NNInterface> nnInterface(m, "NNInterface");
-    nnInterface.def("getObservation", &NNInterface::getObservation, "get observation array given a GameContext")
+    nnInterface.def(pybind11::init<>())
+        .def("getObservation", &NNInterface::getObservation, "get observation array given a GameContext")
+        .def("encode_battle", &NNInterface::encodeBattle, "get observation array given a BattleContext")
         .def("getObservationMaximums", &NNInterface::getObservationMaximums, "get the defined maximum values of the observation space")
         .def_property_readonly("observation_space_size", []() { return NNInterface::observation_space_size; });
 
