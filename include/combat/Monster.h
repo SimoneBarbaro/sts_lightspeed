@@ -26,6 +26,8 @@ namespace sts {
         int attackCount = 1;
     };
 
+    std::ostream &operator<<(std::ostream &os, const sts::DamageInfo &damageInfo);
+
     struct Monster {
 
         /*

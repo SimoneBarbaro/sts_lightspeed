@@ -72,27 +72,31 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
 }
 
 void GameContext::initFromJson(const nlohmann::json &json) {
+    nlohmann::json jsonState = json;
+    if (json.contains("game_state")) {
+        jsonState = json["game_state"];
+    }
 #ifdef sts_print_debug
     std::cout << "Loading Game Context from " << json << std::endl;
 #endif
-    seed = json["game_state"]["seed"];
+    seed = jsonState["seed"];
 
     outcome = GameOutcome::UNDECIDED;
-    ascension = json["game_state"]["ascension_level"];
-    act = json["game_state"]["act"];
-    floorNum = json["game_state"]["floor"];
+    ascension = jsonState["ascension_level"];
+    act = jsonState["act"];
+    floorNum = jsonState["floor"];
 
-    if (json["game_state"].contains("screen_state") && json["game_state"]["screen_state"].contains("current_node")) {
-        json["game_state"]["screen_state"]["current_node"].at("x").get_to(curMapNodeX);
-        json["game_state"]["screen_state"]["current_node"].at("y").get_to(curMapNodeY);
+    if (jsonState.contains("screen_state") && jsonState["screen_state"].contains("current_node")) {
+        jsonState["screen_state"]["current_node"].at("x").get_to(curMapNodeX);
+        jsonState["screen_state"]["current_node"].at("y").get_to(curMapNodeY);
     } else {
     }
 
-    cc = sts::getCharacterFromCommModName(json.at("game_state").at("class").get<std::string>());
+    cc = sts::getCharacterFromCommModName(jsonState.at("class").get<std::string>());
 
-    curHp = json["game_state"]["current_hp"];
-    maxHp = json["game_state"]["max_hp"];
-    gold = json["game_state"]["gold"];
+    curHp = jsonState["current_hp"];
+    maxHp = jsonState["max_hp"];
+    gold = jsonState["gold"];
     speedrunPace = false;
 #ifdef sts_print_debug
     std::cout << "Initializing Game context with seed " << seed << "; character class " << static_cast<int>(cc) << "; Hp: " << curHp << "; maxHp" << maxHp << "; gold: " << gold << std::endl;
@@ -111,10 +115,10 @@ void GameContext::initFromJson(const nlohmann::json &json) {
     miscRng = Random(seed+floorNum);
     monsterRng = Random(seed);
     initRelics();
-    initRelicsFromJson(json);
+    initRelicsFromJson(jsonState["relics"]);
 
     potionCount = 0;
-    auto jsonPotions = json["game_state"]["potions"];
+    auto jsonPotions = jsonState["potions"];
     potionCapacity = jsonPotions.size();
     for (int i = 0; i < jsonPotions.size(); ++i) {
         auto p = jsonPotions[i];
@@ -126,7 +130,7 @@ void GameContext::initFromJson(const nlohmann::json &json) {
         }
     }
 
-    auto jsonDeck = json["game_state"]["deck"];
+    auto jsonDeck = jsonState["deck"];
     for (int i = 0; i < jsonDeck.size(); ++i) {
         auto c = jsonDeck[i];
         CardId cardId = getCardIdFromName(c.at("id").get<std::string>());
@@ -155,19 +159,19 @@ void GameContext::initFromJson(const nlohmann::json &json) {
 #endif
 
 
-    curRoom = sts::getRoomFromId(json["game_state"]["room_type"]);
+    curRoom = sts::getRoomFromId(jsonState["room_type"]);
 
-    if (json["game_state"].contains("combat_state")) {
+    if (jsonState.contains("combat_state")) {
         screenState = ScreenState::BATTLE;
         regainControlAction = [](GameContext &gc) {
             gc.afterBattle();
         };
     } else {
-        screenState = screenStateFromId(json["game_state"]["screen_type"]);
+        screenState = screenStateFromId(jsonState["screen_type"]);
     }
 
     // TODO This seems to not work properly
-    /*if (json["game_state"]["screen_type"]["event_name"].get<std::string>().compare("Neow") == 0) {
+    /*if (jsonState["screen_type"]["event_name"].get<std::string>().compare("Neow") == 0) {
         curEvent = Event::NEOW;
         info.neowRewards = Neow::getOptions(neowRng);
         screenState = ScreenState::EVENT_SCREEN;
@@ -176,7 +180,7 @@ void GameContext::initFromJson(const nlohmann::json &json) {
 
     generateMonsters();
 
-    auto jsonBoss = json["game_state"]["act_boss"].get<std::string>();
+    auto jsonBoss = jsonState["act_boss"].get<std::string>();
     boss = sts::getMonsterEncounterFromString(jsonBoss);
     // TODO do I need to generate act 3 second boss here for asc 20?
 
@@ -204,8 +208,8 @@ void GameContext::initFromJson(const nlohmann::json &json) {
 }
 
 void GameContext::initRelicsFromJson(const nlohmann::json &json) {
-    for (int i = 0; i < json["game_state"]["relics"].size(); ++i) {
-        auto r = json["game_state"]["relics"][i];
+    for (int i = 0; i < json.size(); ++i) {
+        auto r = json[i];
         std::string relicName = r["id"].get<std::string>();
         RelicId relicId = sts::getRelicFromName(relicName);
         

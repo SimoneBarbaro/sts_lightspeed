@@ -8,6 +8,7 @@
 #include "constants/MonsterMoveConvert.h"
 #include "game/GameContext.h"
 #include "game/Game.h"
+#include "sim/PrintHelpers.h"
 
 using namespace sts;
 
@@ -130,7 +131,7 @@ void BattleContext::init(const GameContext &gc, MonsterEncounter encounterToInit
     executeActions();
 }
 
-void BattleContext::initFromJson(const GameContext &gc, const nlohmann::json &json_combat_state) {
+void BattleContext::initFromJson(const GameContext &gc, const nlohmann::json &json) {
     undefinedBehaviorEvoked = false;
     haveUsedDiscoveryAction = false;
     seed = gc.seed;
@@ -163,6 +164,11 @@ void BattleContext::initFromJson(const GameContext &gc, const nlohmann::json &js
 
     int uniqueCardId = 0;
 
+    auto json_game = json;
+    if (json.contains("game_state")) {
+        json_game = json["game_state"];
+    }
+    auto json_combat_state = json_game["combat_state"];
     auto jsonMonsters = json_combat_state["monsters"];
     initMonstersFormJson(jsonMonsters, uniqueCardId);
     player.cardDrawPerTurn = 5;
@@ -183,10 +189,24 @@ void BattleContext::initFromJson(const GameContext &gc, const nlohmann::json &js
     initPowersFromJson(powers);
     initRelicsFromJson(gc);
 
-    // TODO: have communication mod provide the cardsPlayedThisTurn, attacksPlayedthisTurn, skillsPlayedThisTurn, orangePelletsCardTypesPlayed, cardsDiscardedThisTurn
-
+    // Eventually initialize what is needed to initialize at this point in the battle context state
     executeActions();
 
+
+    // Discovery screen (TODO make sure it is only for card discovery)
+    if (json_game["screen_type"].get<std::string>().compare("CARD_REWARD") == 0) {
+        auto cardsJson = json_game["screen_state"]["cards"];
+        // Can I figure out task from json?
+        CardSelectTask taskToOpen = CardSelectTask::DISCOVERY;
+        cardSelectInfo.cards;
+        for (int j = 0; j < cardsJson.size(); ++j) {
+            auto c = cardsJson[j];
+            cardSelectInfo.cards[j] = getCardIdFromName(c.at("id").get<std::string>());
+        }
+        cardSelectInfo.canPickZero = json_game["screen_state"].at("skip_available").get<bool>();
+        openSimpleCardSelectScreen(taskToOpen, 1);
+    }
+    // TODO: have communication mod provide the cardsPlayedThisTurn, attacksPlayedthisTurn, skillsPlayedThisTurn, orangePelletsCardTypesPlayed, cardsDiscardedThisTurn
 }
 
 void sts::BattleContext::initMonstersFormJson(nlohmann::json_abi_v3_11_3::json &jsonMonsters, int &uniqueCardId)
@@ -3569,6 +3589,14 @@ namespace sts {
             << "\n";
 
         os << bc.monsters;
+        // TODO refactoring printing
+        os << "MonsterMove Damage: {\n";
+        for (int i = 0; i < bc.monsters.monsterCount; ++i) {
+            auto m = bc.monsters.arr[i];
+            os << "{" << m.idx << " " << sts::monsterIdStrings[(int) m.id] << "\t" << monsterMoveStrings[(int) m.moveHistory[0]] << ": " << m.getMoveBaseDamage(bc) << "}\n";
+        }
+        os << "}\n";
+
         os << bc.player;
         os << bc.cards;
         os << "}\n";

@@ -7,6 +7,7 @@
 #include "game/Random.h"
 #include "combat/BattleContext.h"
 #include "game/GameContext.h"
+#include "sim/PrintHelpers.h"
 
 using namespace sts;
 
@@ -784,7 +785,10 @@ namespace sts {
         return os;
     }
 
-
+    std::ostream &operator<<(std::ostream &os, const DamageInfo &damageInfo) {
+        os << damageInfo.damage << "x" << damageInfo.attackCount;
+        return os;
+    }
 
     std::ostream &operator<<(std::ostream &os, const Monster &m) {
         os << "{";
@@ -804,8 +808,9 @@ namespace sts {
 
         os << " halfDead: " << m.halfDead
            << ", moveHistory: { " << monsterMoveStrings[(int) m.moveHistory[0]] << ", " << monsterMoveStrings[(int) m.moveHistory[1]] << "}"
-           << " nextActionDamage: " << " miscInfo: " << m.miscInfo << " uniquePower0: " << m.uniquePower0 << " uniquePower1: " << m.uniquePower1
-            << "}";
+           // << " nextActionDamage: "
+           << " miscInfo: " << m.miscInfo << " uniquePower0: " << m.uniquePower0 << " uniquePower1: " << m.uniquePower1
+           << "}";
         return os;
     }
 
