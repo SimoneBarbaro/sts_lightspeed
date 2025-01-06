@@ -53,7 +53,7 @@ int main() {
     // Finish battle if already started one
     if (gc.screenState == sts::ScreenState::BATTLE) {
         sts::BattleContext bc;
-        bc.initFromJson(gc, json["game_state"]);
+        bc.initFromJson(gc, json);
         std::cout << "Loaded battle context: " << bc << std::endl;
         bc.randomizeRngCounters(1);
         agent.playoutBattle(bc);
