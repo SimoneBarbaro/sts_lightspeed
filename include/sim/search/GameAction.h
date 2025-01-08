@@ -18,6 +18,22 @@ namespace sts::search {
 
     struct GameAction {
 
+        enum class GameActionType {
+            INVALID = 0,
+            DISCARD_POTION,       // 1
+            DRINK_POTION,        // 2
+            EVENT_CHOICE,     // 3
+            REWARD_CHOICE,      // 4
+            BOSS_RELIC_CHOICE, // 5
+            CARD_SELECT,       // 6
+            MAP_CHOICE,
+            TREASURE_OPEN,
+            TREASURE_SKIP,
+            CAMPFIRE_CHOICE,
+            SHOP_CHOICE,
+            SKIP
+        };
+
         enum class RewardsActionType {
             CARD = 0,
             GOLD,       // 1
@@ -27,6 +43,19 @@ namespace sts::search {
             CARD_REMOVE, // 5
             SKIP,       // 6
         };
+
+        
+        static constexpr const char* const RewardActionTypeNames[] = {
+                "Choose card",
+                "Pick gold",
+                "Pick key",
+                "Pick potion",
+                "Pick relic",
+                "Remove card",
+
+                "Skip"
+        };
+
 
         std::uint32_t bits = -1;
         GameAction() = default;
@@ -38,6 +67,7 @@ namespace sts::search {
         [[nodiscard]] bool isPotionAction() const;
         [[nodiscard]] bool isPotionDiscard() const;
         [[nodiscard]] RewardsActionType getRewardsActionType() const;
+        [[nodiscard]] GameActionType getGameActionType(const sts::GameContext &gc) const;
 
         [[nodiscard]] int getIdx1() const; // always positive
         [[nodiscard]] int getIdx2() const; // always positive

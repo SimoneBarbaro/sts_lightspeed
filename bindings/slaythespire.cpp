@@ -54,6 +54,23 @@ PYBIND11_MODULE(slaythespire, m) {
         .def("print_search_tree", &search::BattleScumSearcher2::printSearchTree)
         .def("print_search_stack", &search::BattleScumSearcher2::printSearchStack);
 
+    pybind11::class_<search::GameAction> gameAction(m, "GameAction");
+    gameAction.def(pybind11::init<>())
+        .def(pybind11::init<int, int>())
+        .def(pybind11::init<search::GameAction::RewardsActionType, int, int>())
+        .def("execute", &search::GameAction::execute)
+        .def("is_valid_action", &search::GameAction::isValidAction)
+        .def("action_type", &search::GameAction::getGameActionType)
+        .def_property_readonly("reward_action_type", &search::GameAction::getRewardsActionType)
+        .def_property_readonly("idx1", &search::GameAction::getIdx1)
+        .def_property_readonly("idx2", &search::GameAction::getIdx2)
+        .def_property_readonly("value", [](const search::GameAction &a) { return a.bits; })
+        .def("print_desc", [](const search::GameAction &a, const GameContext &gc) {
+            std::ostringstream oss;
+            a.printDesc(oss, gc);
+            return oss.str();
+        });
+
     pybind11::class_<search::Action> searchAction(m, "SearchAction");
     searchAction.def(pybind11::init<>())
         .def(pybind11::init<search::ActionType>())
@@ -101,6 +118,17 @@ PYBIND11_MODULE(slaythespire, m) {
                [] (const GameContext &gc) { return std::vector(gc.relics.relics); },
                "returns a copy of the list of relics"
         )
+        .def("get_avaliable_actions",
+            [](GameContext &gc) {
+                std::vector<search::GameAction> actions = search::GameAction::getAllActionsInState(gc);
+                return std::vector(actions.begin(), actions.end());
+            }
+        )
+        .def("execute",
+            [](GameContext &gc, search::GameAction &action) {
+                action.execute(gc);
+            },
+            "execute the actions in the bot's action queue")
         .def("init_from_json", 
             &sts::py::initGameContextFromJsonString,
             "initialize the GameContext from a json object")
@@ -143,6 +171,7 @@ PYBIND11_MODULE(slaythespire, m) {
         .def_readwrite("speedrun_pace", &GameContext::speedrunPace)
         .def_readwrite("note_for_yourself_card", &GameContext::noteForYourselfCard)
         .def_readwrite("skip_battles", &GameContext::skipBattles);
+    
     pybind11::class_<BattleContext> battleContext(m, "BattleContext");
     battleContext.def(pybind11::init<>())
         .def(pybind11::init<const BattleContext &>())
@@ -158,6 +187,12 @@ PYBIND11_MODULE(slaythespire, m) {
         .def("exit_battle",
             &BattleContext::exitBattle,
             "exit the battle and update the GameContext")
+        .def("execute",
+            [](BattleContext &bc, const search::Action &action) { action.execute(bc);},
+            "execute an action to the environment")
+        .def("is_terminal", 
+            [](const BattleContext &bc) { return bc.outcome != Outcome::UNDECIDED; },
+            "Whether the battle is over")
         .def_property_readonly("player",
             [](const BattleContext &bc) { return bc.player; },
             "returns the player object"
@@ -1080,6 +1115,30 @@ PYBIND11_MODULE(slaythespire, m) {
         .value("SELECT_WARPED_TONGS_CARD", InputState::SELECT_WARPED_TONGS_CARD)
         .value("CREATE_ENCHIRIDION_POWER", InputState::CREATE_ENCHIRIDION_POWER)
         .value("SELECT_CONFUSED_CARD_COST", InputState::SELECT_CONFUSED_CARD_COST);
+
+    pybind11::enum_<sts::search::GameAction::GameActionType> gameActionType(m, "GameActionType");
+    gameActionType.value("INVALID", sts::search::GameAction::GameActionType::INVALID)
+        .value("DISCARD_POTION", sts::search::GameAction::GameActionType::DISCARD_POTION)
+        .value("DRINK_POTION", sts::search::GameAction::GameActionType::DRINK_POTION)
+        .value("EVENT_CHOICE", sts::search::GameAction::GameActionType::EVENT_CHOICE)
+        .value("REWARD_CHOICE", sts::search::GameAction::GameActionType::REWARD_CHOICE)
+        .value("BOSS_RELIC_CHOICE", sts::search::GameAction::GameActionType::BOSS_RELIC_CHOICE)
+        .value("CARD_SELECT", sts::search::GameAction::GameActionType::CARD_SELECT)
+        .value("MAP_CHOICE", sts::search::GameAction::GameActionType::MAP_CHOICE)
+        .value("TREASURE_OPEN", sts::search::GameAction::GameActionType::TREASURE_OPEN)
+        .value("TREASURE_SKIP", sts::search::GameAction::GameActionType::TREASURE_SKIP)
+        .value("CAMPFIRE_CHOICE", sts::search::GameAction::GameActionType::CAMPFIRE_CHOICE)
+        .value("SHOP_CHOICE", sts::search::GameAction::GameActionType::SHOP_CHOICE)
+        .value("SKIP", sts::search::GameAction::GameActionType::SKIP);
+
+    pybind11::enum_<sts::search::GameAction::RewardsActionType> rewardActionType(m, "RewardActionType");
+    rewardActionType.value("CARD", sts::search::GameAction::RewardsActionType::CARD)
+        .value("GOLD", sts::search::GameAction::RewardsActionType::GOLD)
+        .value("KEY", sts::search::GameAction::RewardsActionType::KEY)
+        .value("POTION", sts::search::GameAction::RewardsActionType::POTION)
+        .value("RELIC", sts::search::GameAction::RewardsActionType::RELIC)
+        .value("CARD_REMOVE", sts::search::GameAction::RewardsActionType::CARD_REMOVE)
+        .value("SKIP", sts::search::GameAction::RewardsActionType::SKIP);
 
     pybind11::enum_<sts::search::ActionType> searchActionType(m, "SeachActionType");
     searchActionType.value("CARD", sts::search::ActionType::CARD)

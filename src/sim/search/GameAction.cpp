@@ -42,8 +42,83 @@ int search::GameAction::getIdx3() const {
     return static_cast<int>((bits >> 16) & 0xFF);
 }
 
+search::GameAction::GameActionType search::GameAction::getGameActionType(const GameContext &gc) const {
+    if (isPotionAction()) {
+        if (isPotionDiscard()) {
+            return GameActionType::DISCARD_POTION;
+        }
+        else {
+            return GameActionType::DRINK_POTION;
+        }
+    }
+    switch (gc.screenState) {
+        case ScreenState::EVENT_SCREEN:
+            return GameActionType::EVENT_CHOICE;
+
+        case ScreenState::REWARDS:
+            return GameActionType::REWARD_CHOICE;
+
+        case ScreenState::BOSS_RELIC_REWARDS:
+            return GameActionType::BOSS_RELIC_CHOICE;
+
+        case ScreenState::CARD_SELECT:
+            return GameActionType::CARD_SELECT;
+
+        case ScreenState::MAP_SCREEN:
+            return GameActionType::MAP_CHOICE;
+
+        case ScreenState::TREASURE_ROOM:
+            if (getIdx1() == 0) {
+                return GameActionType::TREASURE_OPEN;
+            } else {
+                return GameActionType::TREASURE_SKIP;
+            }
+
+        case ScreenState::REST_ROOM:
+            return GameActionType::CAMPFIRE_CHOICE;
+
+        case ScreenState::SHOP_ROOM:
+            return GameActionType::SHOP_CHOICE;
+
+        case ScreenState::BATTLE:
+        case ScreenState::INVALID:
+        default:
+            break;
+    }
+    return GameActionType::INVALID;
+}
+
+
 std::ostream &search::GameAction::printDesc(std::ostream &os, const GameContext &gc) const {
-    return os;
+    switch (getGameActionType(gc)) {
+    case GameActionType::DISCARD_POTION:
+        return os << "{ discard potion " << getPotionName(gc.potions[getIdx1()]) << " }";
+    case GameActionType::DRINK_POTION:
+        return os << "{ drink potion " << getPotionName(gc.potions[getIdx1()]) << " }";
+    case GameActionType::EVENT_CHOICE:
+        return os << "{ event choose " << getIdx1() << " }";
+    case GameActionType::REWARD_CHOICE:
+        return os << "{ reward choose " << RewardActionTypeNames[static_cast<int>(getRewardsActionType())] << "[" << getIdx1() << "," << getIdx2() << "]" << " }";
+    case GameActionType::BOSS_RELIC_CHOICE:
+        return os << "{ relic choose " << getIdx1() << " }";
+    case GameActionType::CARD_SELECT:
+        return os << "{ card choose " << getIdx1() << " }";
+    case GameActionType::MAP_CHOICE:
+        return os << "{ map node choose " << getIdx1() << " }";
+    case GameActionType::TREASURE_OPEN:
+        return os << "{ treasure open }";
+    case GameActionType::TREASURE_SKIP:
+        return os << "{ treasure skip }";
+    case GameActionType::CAMPFIRE_CHOICE:
+        return os << "{ campfire choose " << getIdx1() << " }";
+    case GameActionType::SHOP_CHOICE:
+        return os << "{ shop choose " << RewardActionTypeNames[static_cast<int>(getRewardsActionType())] << "[" << getIdx1() << "]" << " }";
+    case GameActionType::SKIP:
+        return os << "{ skip }";
+    default:
+        break;
+    }
+    return os << "{ INVALID ACTION }";
 }
 
 bool isValidMatchAndKeepEventAction(const GameContext &gc, const search::GameAction a) {
