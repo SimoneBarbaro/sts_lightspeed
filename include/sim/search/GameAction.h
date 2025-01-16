@@ -26,12 +26,12 @@ namespace sts::search {
             REWARD_CHOICE,      // 4
             BOSS_RELIC_CHOICE, // 5
             CARD_SELECT,       // 6
-            MAP_CHOICE,
-            TREASURE_OPEN,
-            TREASURE_SKIP,
-            CAMPFIRE_CHOICE,
-            SHOP_CHOICE,
-            SKIP
+            MAP_CHOICE,         // 7
+            TREASURE_OPEN,     // 8
+            TREASURE_SKIP,     // 9
+            CAMPFIRE_CHOICE,    // 10
+            SHOP_CHOICE,       // 11
+            SKIP                // 12
         };
 
         enum class RewardsActionType {
@@ -62,6 +62,7 @@ namespace sts::search {
         GameAction(std::uint32_t bits);
         GameAction(int idx1, int idx2=0);
         GameAction(RewardsActionType type, int idx1=0, int idx2=0);
+        GameAction(GameActionType type, RewardsActionType rewardType, int idx1, int idx2);
 
 
         [[nodiscard]] bool isPotionAction() const;
@@ -81,7 +82,8 @@ namespace sts::search {
         void execute(GameContext &gc) const;
         static std::vector<GameAction> getAllActionsInState(const sts::GameContext &gc);
         static int getValidEventSelectBits(const sts::GameContext &gc);
-
+        bool operator==(GameAction const& rhs) const;
+        bool operator!=(GameAction const& rhs) const;
     };
 
 

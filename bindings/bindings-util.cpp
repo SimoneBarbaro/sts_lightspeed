@@ -89,6 +89,14 @@ namespace sts {
         ret[offset++] = player.getStatus<PlayerStatus::DEXTERITY>();
         ret[offset++] = player.getStatus<PlayerStatus::STRENGTH>();
         ret[offset++] = player.getStatus<PlayerStatus::FOCUS>();
+        ret[offset++] = player.happyFlowerCounter;
+        ret[offset++] = player.incenseBurnerCounter;
+        ret[offset++] = player.inkBottleCounter;
+        ret[offset++] = player.inserterCounter;
+        ret[offset++] = player.nunchakuCounter;
+        ret[offset++] = player.penNibCounter;
+        ret[offset++] = player.sundialCounter;
+        ret[offset++] = (int)player.haveUsedNecronomiconThisTurn;
         // TODO orbs
         // All the other statuses are in statusMap
         for (auto status : player.statusMap)
@@ -149,13 +157,16 @@ namespace sts {
         ret[offset++] = std::min(gc.maxHp, playerHpMax);
         ret[offset++] = std::min(gc.gold, playerGoldMax);
         ret[offset++] = gc.floorNum;
-
+        // TODO encode map
+        // TODO encode current event
         int bossEncodeIdx = offset + bossEncodeMap.at(gc.boss);
         ret[bossEncodeIdx] = 1;
         offset += 10;
 
         for (auto c : gc.deck.cards) {
-            int encodeIdx = offset + getCardIdx(c);
+            //int encodeIdx = offset + getCardIdx(c);
+            int encodeIdx = static_cast<int>(c.getId());
+            encodeIdx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[encodeIdx] = std::min(ret[encodeIdx]+1, cardCountMax);
         }
         offset += 220;
@@ -188,6 +199,55 @@ namespace sts {
         std::fill(ret.begin()+spaceOffset, ret.end(), 1);
         spaceOffset += 178;
 
+        return ret;
+    }
+    
+    std::array<int,NNInterface::battle_observation_size> NNInterface::getBattleObservationMaximums() const {
+        std::array<int,NNInterface::battle_observation_size> ret {};
+        int spaceOffset = 0;
+
+        ret[spaceOffset++] = playerHpMax;
+        ret[spaceOffset++] = playerHpMax;
+        ret[spaceOffset++] = 60;
+        // energy
+        ret[spaceOffset++] = 20;
+        ret[spaceOffset++] = 3;
+
+        // Statuses
+        ret[spaceOffset++] = maxStatusValue;
+        ret[spaceOffset++] = maxStatusValue;
+        ret[spaceOffset++] = maxStatusValue;
+        ret[spaceOffset++] = maxStatusValue;
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(PlayerStatus::THE_BOMB), maxStatusValue);
+        spaceOffset += static_cast<int>(PlayerStatus::THE_BOMB);
+        // Special info
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+8, 10);
+        spaceOffset += 8;
+        // hand booleans
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+NNInterface::numCards*2*10, 1);
+        spaceOffset += NNInterface::numCards*2*10;
+        // draw+discard+exausth
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+NNInterface::numCards*2*3, cardCountMax);
+        spaceOffset += NNInterface::numCards*2*3;
+        // Relics booleans
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(RelicId::INVALID), 1);
+        spaceOffset += static_cast<int>(RelicId::INVALID);
+        // Monsters
+        for (int i = 0; i < 5; i++) {
+            ret[spaceOffset++] = playerHpMax;
+            ret[spaceOffset++] = playerHpMax;
+            ret[spaceOffset++] = 60;
+            // Statuses
+            for (int j = 0; j < 13; j++)
+                ret[spaceOffset++] = maxStatusValue;
+            // Intent
+            std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(Intent::UNKNOWN), 1);
+            spaceOffset += static_cast<int>(Intent::UNKNOWN);
+            // Attack count
+            ret[spaceOffset++] = 15;
+            // Damage
+            ret[spaceOffset++] = playerHpMax;
+        }
         return ret;
     }
 
@@ -241,6 +301,144 @@ namespace sts {
     NNInterface* NNInterface::getInstance() {
         if (theInstance == nullptr) {
             theInstance = new NNInterface;
+        }
+        return theInstance;
+    }
+
+}
+
+namespace sts::search {
+
+    Encoding::Encoding() {
+        createGameActionEncodeMap();
+        createBattleActionEncodeMap();
+    }
+
+
+    void Encoding::createGameActionEncodeMap() {
+        // discard potion
+        uint32_t bits = GameAction(GameAction::GameActionType::DISCARD_POTION, GameAction::RewardsActionType::CARD, 0, 0).bits;
+        int encodedValue = 0;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        // drink potion
+        bits = GameAction(GameAction::GameActionType::DRINK_POTION, GameAction::RewardsActionType::CARD, 0, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        // Event choices = Card reward actions
+        // Card reward
+        for (int idx1 = 0; idx1 < 5; idx1++) {
+            for (int idx2 = 0; idx2 < 6; idx2++) {
+                bits = GameAction(GameAction::RewardsActionType::CARD, idx1, idx2).bits;
+                gameActionEncodeMap[bits] = encodedValue;
+                gameActionDecodeMap[encodedValue++] = GameAction(bits);
+            }
+        }
+        // Shop only buy card actions
+        bits = GameAction(GameAction::RewardsActionType::CARD, 6, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        bits = GameAction(GameAction::RewardsActionType::CARD, 7, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        // Gold reward
+        for (int idx1 = 0; idx1 < 2; idx1++) {
+            bits = GameAction(GameAction::RewardsActionType::GOLD, idx1, 0).bits;
+            gameActionEncodeMap[bits] = encodedValue;
+            gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        }
+        // Key reward
+        bits = GameAction(GameAction::RewardsActionType::KEY, 0, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        // Potion reward
+        for (int idx1 = 0; idx1 < 5; idx1++) {
+            bits = GameAction(GameAction::RewardsActionType::POTION, idx1, 0).bits;
+            gameActionEncodeMap[bits] = encodedValue;
+            gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        }
+        // Relic reward
+        for (int idx1 = 0; idx1 < 3; idx1++) {
+            bits = GameAction(GameAction::RewardsActionType::RELIC, idx1, 0).bits;
+            gameActionEncodeMap[bits] = encodedValue;
+            gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        }
+        bits = GameAction(GameAction::RewardsActionType::CARD_REMOVE, 0, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        bits = GameAction(GameAction::RewardsActionType::SKIP, 0, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+        // card selection screen
+        for (int bits = 0; bits < Deck::MAX_SIZE; ++bits) {
+            if (gameActionEncodeMap.count(bits) == 0) {
+                gameActionEncodeMap[bits] = encodedValue;
+                gameActionDecodeMap[encodedValue++] = GameAction(bits);
+            }
+        }
+        bits = GameAction(GameAction::RewardsActionType::SKIP, 0, 0).bits;
+        gameActionEncodeMap[bits] = encodedValue;
+        gameActionDecodeMap[encodedValue++] = GameAction(bits);
+    }
+    void Encoding::createBattleActionEncodeMap() {
+        uint32_t bits = Action(ActionType::END_TURN).bits;
+        int encodedValue = 0;
+        battleActionEncodeMap[bits] = encodedValue;
+        battleActionDecodeMap[encodedValue++] = Action(bits);
+        // Use card
+        for (int sourceIdx = 0; sourceIdx < 10; sourceIdx++) {
+            for (int targetIdx = 0; targetIdx < 5; targetIdx++) {
+                bits = Action(ActionType::CARD, sourceIdx, targetIdx).bits;
+                battleActionEncodeMap[bits] = encodedValue;
+                battleActionDecodeMap[encodedValue++] = Action(bits);
+            }
+        }
+        //potion
+        for (int sourceIdx = 0; sourceIdx < 5; sourceIdx++) {
+            for (int targetIdx = -1; targetIdx < 5; targetIdx++) {
+                bits = Action(ActionType::POTION, sourceIdx, targetIdx).bits;
+                battleActionEncodeMap[bits] = encodedValue;
+                battleActionDecodeMap[encodedValue++] = Action(bits);
+            }
+        }
+        // single card select
+        for (int sourceIdx = 0; sourceIdx < CardManager::MAX_GROUP_SIZE; sourceIdx++) {
+            bits = Action(ActionType::SINGLE_CARD_SELECT, sourceIdx).bits;
+            battleActionEncodeMap[bits] = encodedValue;
+            battleActionDecodeMap[encodedValue++] = Action(bits);
+        }
+        // multi card select
+        bits = Action(ActionType::MULTI_CARD_SELECT, 0).bits;
+        battleActionEncodeMap[bits] = encodedValue;
+        battleActionDecodeMap[encodedValue++] = Action(bits);
+        /*for (int sourceIdx = 0; sourceIdx < CardManager::MAX_GROUP_SIZE; sourceIdx++) {
+            bits = Action(ActionType::SINGLE_CARD_SELECT, sourceIdx, 0).bits;
+            battleActionEncodeMap[bits] = encodedValue;
+            battleActionDecodeMap[encodedValue++] = Action(bits);
+        }*/
+    }
+
+    /*std::array<int, Encoding::action_space_size> Encoding::encodeAction(const GameContext &gc, const sts::search::GameAction &action) {
+        std::array<int,action_space_size> ret = {};
+        ret[0] = static_cast<int>(action.getGameActionType(gc));
+        ret[1] = static_cast<int>(action.getRewardsActionType());
+        ret[2] = action.getIdx1();
+        ret[3] = action.getIdx2();
+        return ret;
+    }
+
+    std::array<int, Encoding::action_space_size> Encoding::encodeBattleAction(const sts::search::Action &action) {
+        std::array<int,action_space_size> ret = {};
+        ret[0] = action.getSourceIdx();
+        ret[1] = static_cast<int>(action.getActionType());
+        ret[2] = action.getTargetIdx();
+        ret[3] = 0;
+        return ret;
+    }*/
+
+    Encoding* Encoding::getInstance() {
+        if (theInstance == nullptr) {
+            theInstance = new Encoding;
         }
         return theInstance;
     }

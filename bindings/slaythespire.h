@@ -14,6 +14,8 @@
 #include "constants/MonsterMoves.h"
 #include "combat/Player.h"
 #include "combat/Monster.h"
+#include "sim/search/Action.h"
+#include "sim/search/GameAction.h"
 
 #include "constants/Rooms.h"
 
@@ -23,10 +25,11 @@ namespace sts {
         static constexpr int observation_space_size = 412;
 
         static constexpr int numCards = static_cast<int>(CardId::ZAP);
-
         static constexpr int battle_observation_size = 9 // Basic player features
             // Player status features
             + static_cast<int>(PlayerStatus::THE_BOMB) 
+            // player special info features
+            + 8
             // hand+draw+discard+exhaust pile one hot encodings of each card
             + static_cast<int>(NNInterface::numCards*2*13)
             // Relics one hot encodings
@@ -36,6 +39,8 @@ namespace sts {
         static constexpr int playerHpMax = 200;
         static constexpr int playerGoldMax = 1800;
         static constexpr int cardCountMax = 7;
+        static constexpr int maxStatusValue = 30;
+        
         
 
         const std::vector<int> cardEncodeMap;
@@ -50,7 +55,8 @@ namespace sts {
         void encodePlayer(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const Player &player) const;
         void encodeMonster(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const Monster &monster, bool hasRunicDome, const BattleContext &bc) const;
         std::array<int, observation_space_size> getObservationMaximums() const;
-        std::array<int,observation_space_size> getObservation(const GameContext &gc) const;
+        std::array<int, battle_observation_size> getBattleObservationMaximums() const;
+        std::array<int, observation_space_size> getObservation(const GameContext &gc) const;
 
 
         static std::vector<int> createOneHotCardEncodingMap();
@@ -62,6 +68,24 @@ namespace sts {
     namespace search {
         class ScumSearchAgent2;
         class BattleScumSearcher2;
+        
+        struct Encoding {
+            static constexpr int action_space_size = 4;
+
+            std::unordered_map<uint32_t, int> gameActionEncodeMap;
+            std::unordered_map<uint32_t, int> battleActionEncodeMap;
+            std::unordered_map<int, GameAction> gameActionDecodeMap;
+            std::unordered_map<int, Action> battleActionDecodeMap;
+            //std::array<int, action_space_size> encodeAction(const GameContext &gc, const sts::search::GameAction &action);
+            //std::array<int, action_space_size> encodeBattleAction(const sts::search::Action &action);
+            void createGameActionEncodeMap();
+            void createBattleActionEncodeMap();
+            static inline Encoding *theInstance = nullptr;
+
+            Encoding();
+            static Encoding* getInstance();
+
+        };
     }
 
 

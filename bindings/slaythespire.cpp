@@ -28,13 +28,34 @@ PYBIND11_MODULE(slaythespire, m) {
     m.def("get_seed_str", &SeedHelper::getString, "gets the integral representation of seed string used in the game ui");
     m.def("get_seed_long", &SeedHelper::getLong, "gets the seed string representation of an integral seed");
     m.def("getNNInterface", &sts::NNInterface::getInstance, "gets the NNInterface object");
+    m.def("getEncodingsInterface", &sts::search::Encoding::getInstance, "gets the Encoding interface object");
 
     pybind11::class_<NNInterface> nnInterface(m, "NNInterface");
     nnInterface.def(pybind11::init<>())
         .def("getObservation", &NNInterface::getObservation, "get observation array given a GameContext")
         .def("encode_battle", &NNInterface::encodeBattle, "get observation array given a BattleContext")
+        //.def("encode_game_action", &sts::search::encodeAction, "get vectorize action representation")
+        //.def("encode_battle_action", &sts::search::encodeBattleAction, "get vectorized battle action representation")
         .def("getObservationMaximums", &NNInterface::getObservationMaximums, "get the defined maximum values of the observation space")
-        .def_property_readonly("observation_space_size", []() { return NNInterface::observation_space_size; });
+        .def("getBattleObservationMaximums", &NNInterface::getBattleObservationMaximums, "get the defined maximum values of the battle observation space")
+        .def_property_readonly("observation_space_size", [](const NNInterface &nni) { return NNInterface::observation_space_size; })
+        .def_property_readonly("battle_space_size", [](const NNInterface &nni) { return NNInterface::battle_observation_size; })
+        //.def_property_readonly("action_space_size", [](const NNInterface &nni) { return sts::search::action_space_size; })
+        ;
+    pybind11::class_<search::Encoding> searchEncoding(m, "SearchEncoding");
+    searchEncoding.def(pybind11::init<>())
+        .def("encode_game_action", [](const search::Encoding &instance, search::GameAction &action) {return instance.gameActionEncodeMap.at(action.bits);})
+        .def("decode_game_action", [](const search::Encoding &instance, int &action) {return instance.gameActionDecodeMap.at(action);})
+        .def("encode_battle_action", [](const search::Encoding &instance, search::Action &action) {return instance.battleActionEncodeMap.at(action.bits);})
+        .def("decode_battle_action", [](const search::Encoding &instance, int &action) {return instance.battleActionDecodeMap.at(action);})
+        //.def_property_readonly("gameActionEncodeMap", [](const search::Encoding &instance) { return instance.gameActionEncodeMap; })
+        //.def_property_readonly("battleActionEncodeMap", [](const search::Encoding &instance) { return instance.battleActionEncodeMap; })
+        //.def_property_readonly("gameActionDecodeMap", [](const search::Encoding &instance) { return instance.gameActionDecodeMap; })
+        //.def_property_readonly("battleActionDecodeMap", [](const search::Encoding &instance) { return instance.battleActionDecodeMap; })
+        .def_property_readonly("game_action_space_size", [](const search::Encoding &instance) { return instance.gameActionEncodeMap.size(); })
+        .def_property_readonly("battle_action_space_size", [](const search::Encoding &instance) { return instance.battleActionEncodeMap.size(); })
+    ;
+
 
     pybind11::class_<search::ScumSearchAgent2> agent(m, "Agent");
     agent.def(pybind11::init<>());
@@ -56,8 +77,10 @@ PYBIND11_MODULE(slaythespire, m) {
 
     pybind11::class_<search::GameAction> gameAction(m, "GameAction");
     gameAction.def(pybind11::init<>())
+        .def(pybind11::init<int>())
         .def(pybind11::init<int, int>())
         .def(pybind11::init<search::GameAction::RewardsActionType, int, int>())
+        .def(pybind11::init<search::GameAction::GameActionType, search::GameAction::RewardsActionType, int, int>())
         .def("execute", &search::GameAction::execute)
         .def("is_valid_action", &search::GameAction::isValidAction)
         .def("action_type", &search::GameAction::getGameActionType)
@@ -118,7 +141,7 @@ PYBIND11_MODULE(slaythespire, m) {
                [] (const GameContext &gc) { return std::vector(gc.relics.relics); },
                "returns a copy of the list of relics"
         )
-        .def("get_avaliable_actions",
+        .def("get_available_actions",
             [](GameContext &gc) {
                 std::vector<search::GameAction> actions = search::GameAction::getAllActionsInState(gc);
                 return std::vector(actions.begin(), actions.end());
@@ -256,8 +279,11 @@ PYBIND11_MODULE(slaythespire, m) {
                "returns the battle outcome"
         )
         .def("get_available_actions", [](const BattleContext &bc) {
-            auto actions = search::Action::enumerateAllAvailableActions(bc);
-            return std::vector(actions.begin(), actions.end());
+            if (bc.inputState == InputState::PLAYER_NORMAL || bc.inputState == InputState::CARD_SELECT) {
+                auto actions = search::Action::enumerateAllAvailableActions(bc);
+                return std::vector(actions.begin(), actions.end());
+            }
+            return std::vector<search::Action>(0);
             }, "returns a list of valid actions for the current BattleContext")
         .def("is_same_rng_counters", [](const BattleContext &bc, const BattleContext &other) {
             return bc.miscRng.counter == other.miscRng.counter 
@@ -1140,7 +1166,7 @@ PYBIND11_MODULE(slaythespire, m) {
         .value("CARD_REMOVE", sts::search::GameAction::RewardsActionType::CARD_REMOVE)
         .value("SKIP", sts::search::GameAction::RewardsActionType::SKIP);
 
-    pybind11::enum_<sts::search::ActionType> searchActionType(m, "SeachActionType");
+    pybind11::enum_<sts::search::ActionType> searchActionType(m, "SearchActionType");
     searchActionType.value("CARD", sts::search::ActionType::CARD)
         .value("POTION", sts::search::ActionType::POTION)
         .value("SINGLE_CARD_SELECT", sts::search::ActionType::SINGLE_CARD_SELECT)

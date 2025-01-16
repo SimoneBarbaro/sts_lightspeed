@@ -18,6 +18,30 @@ search::GameAction::GameAction(int idx1, int idx2) : bits( (idx2 & 0xFF) << 8 | 
 search::GameAction::GameAction(search::GameAction::RewardsActionType type, int idx1, int idx2)
     : bits( static_cast<int>(type) <<  27 | (idx2 & 0xFF) << 8 | (idx1 & 0xFF) ) {}
 
+search::GameAction::GameAction(GameActionType type, RewardsActionType rewardType, int idx1, int idx2) {
+        uint32_t typeOffset = 0;
+        switch (type)
+        {
+        case GameActionType::DISCARD_POTION:
+            typeOffset =  0x40000000U;
+        case GameActionType::DRINK_POTION:
+            typeOffset = typeOffset | 0x80000000U;
+            break;
+        // To be clear, for these actions all that matters is idx
+        case GameActionType::EVENT_CHOICE:
+        case GameActionType::BOSS_RELIC_CHOICE:
+            break;
+        // Treasure -> open if id = 0
+        case GameActionType::TREASURE_OPEN:
+            idx1 = 0;
+        
+        default:
+            break;
+        }
+
+    bits = typeOffset | static_cast<int>(rewardType) <<  27 | (idx2 & 0xFF) << 8 | (idx1 & 0xFF);
+}
+
 bool search::GameAction::isPotionAction() const {
     return bits & 0x80000000U;
 }
@@ -980,4 +1004,13 @@ int search::GameAction::getValidEventSelectBits(const GameContext &gc) {
         default:
             return 0;
     }
+
+}
+
+bool search::GameAction::operator==(const GameAction &rhs) const {
+    return bits == rhs.bits;
+}
+
+bool search::GameAction::operator!=(const search::GameAction &rhs) const {
+    return !(rhs == *this);
 }
