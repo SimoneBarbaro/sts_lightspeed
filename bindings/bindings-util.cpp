@@ -376,9 +376,6 @@ namespace sts::search {
                 gameActionDecodeMap[encodedValue++] = GameAction(bits);
             }
         }
-        bits = GameAction(GameAction::RewardsActionType::SKIP, 0, 0).bits;
-        gameActionEncodeMap[bits] = encodedValue;
-        gameActionDecodeMap[encodedValue++] = GameAction(bits);
     }
     void Encoding::createBattleActionEncodeMap() {
         uint32_t bits = Action(ActionType::END_TURN).bits;
