@@ -30,6 +30,7 @@
 #include "game/Rewards.h"
 #include "game/Deck.h"
 #include "game/Shop.h"
+#include "game/GameScoring.h"
 
 namespace sts {
 
@@ -257,6 +258,8 @@ namespace sts {
 
         GameContextAction regainControlAction = nullptr;
 
+        GameScoreTracker scoreTracker = GameScoreTracker();
+
         GameContext() = default;
         GameContext(CharacterClass cc, std::uint64_t seed, int ascensionLevel);
 
@@ -368,6 +371,7 @@ namespace sts {
         void chooseTreasureRoomOption(bool openChest);
 
         void regainControl();
+        int getFinalScore() const;
         void randomizeRngCounters(int counterOffset);
     };
 }

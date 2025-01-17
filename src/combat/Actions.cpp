@@ -939,7 +939,7 @@ Action Actions::SuicideAction(int monsterIdx, bool triggerRelics) {
         }
     }};
 }
-
+// TODO is this not implemented?
 Action Actions::PoisonLoseHpAction() {
     return sts::Action();
 }

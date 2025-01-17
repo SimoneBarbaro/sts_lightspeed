@@ -57,6 +57,10 @@ namespace sts {
         int loopCount = 0;
         int energyWasted = 0;
         int cardsDrawn = 0;
+        int maxDamageDealt = 0;
+        bool noDamage = true;
+        int maxCardsPlayedPerTurn = 0;
+        int cardsPlayerThisTurn = 0;
         // end for debugging purposes
 
         Random aiRng;

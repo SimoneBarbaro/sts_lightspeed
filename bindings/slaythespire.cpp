@@ -158,6 +158,8 @@ PYBIND11_MODULE(slaythespire, m) {
         .def("randomize_rng_counters",
             &GameContext::randomizeRngCounters,
             "randomize the rng counters")
+        .def ("get_final_score", &GameContext::getFinalScore,
+            "Calculates the score of the simulation so far")
         .def("__repr__", [](const GameContext &gc) {
             std::ostringstream oss;
             oss << "<" << gc << ">";

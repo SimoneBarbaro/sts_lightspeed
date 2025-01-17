@@ -608,6 +608,8 @@ void Monster::damage(BattleContext &bc, int damage) {
     const bool hadBlock = block > 0;
     const int tempDamage = damage;
     damage -= block;
+    if (bc.maxDamageDealt < tempDamage)
+        bc.maxDamageDealt = tempDamage;
     block = std::max(0, block-tempDamage);
 
     if (hadBlock && block == 0 && bc.player.hasRelic<RelicId::HAND_DRILL>()) {

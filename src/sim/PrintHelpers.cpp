@@ -214,6 +214,7 @@ namespace sts {
             }
             os << " " << gc.deck << " " << gc.relics << std::endl;
         }
+        os << " Final Score: " <<  gc.getFinalScore() << std::endl;
     }
 
 }

@@ -332,6 +332,7 @@ void Player::loseHp(BattleContext &bc, int amount, bool selfDamage) {
 
 void Player::hpWasLost(BattleContext &bc, int amount, bool selfDamage) {
     assert(amount > 0);
+    bc.noDamage = false;
 
     bool wasBloodied = curHp <= maxHp/2;
 

@@ -1381,6 +1381,7 @@ void GameContext::obtainGold(int amount) {
     if (relics.has(R::BLOODY_IDOL)) {
         playerHeal(5);
     }
+    scoreTracker.totalGold += amount;
 }
 
 void GameContext::obtainPotion(Potion p) {
@@ -2314,6 +2315,7 @@ void GameContext::playerHeal(int amount) {
 void GameContext::playerIncreaseMaxHp(int amount) {
     maxHp += amount;
     playerHeal(amount);
+    scoreTracker.hpIncrease += amount;
 }
 
 void GameContext::loseGold(int amount, bool inShop) {
@@ -3979,6 +3981,46 @@ void GameContext::regainControl() {
 //        assert(false);
     }
     regainControlAction(*this);
+}
+
+int GameContext::getFinalScore() const {
+    int score = 0;
+    float ascension_bonus = 0.05f * ascension;
+    score += std::floor(floorNum / 5);
+    score += 2 * scoreTracker.enemiesSlain;
+    score += 10 * scoreTracker.eliteKilledAct1;
+    score += 20 * scoreTracker.eliteKilledAct2;
+    score += 30 * scoreTracker.eliteKilledAct3;
+    score += scoreTracker.BOSS_KILL_SCORES[scoreTracker.bossesKilled];
+    score += 25 * scoreTracker.perfectElites;
+    score += std::max(50 * scoreTracker.perfectBosses, 200);
+    score += 25 * scoreTracker.isCcccombo;
+    score += 25 * scoreTracker.isOverkill;
+    score += static_cast<int>(ascension_bonus * score);
+    score += 250 * scoreTracker.heartbreaker;
+
+    std::unordered_map<int, int> cardCount;
+    for (const auto &card : deck.cards) {
+        cardCount[static_cast<int>(card.getId())]++;
+    }
+    int collectorSets = 0;
+    for (const auto &entry : cardCount) {
+        if (entry.second >= 4) {
+            collectorSets++;
+        }
+    }
+    score += 25 * collectorSets;
+
+    score += deck.size() > 50 ? 50 : (deck.size() > 35 ? 25 : 0);
+    score += scoreTracker.questionmarkVisited > 15 ? 25 : 0;
+    score += relics.size() > 25 ? 50 : 0;
+    score += scoreTracker.hpIncrease > 30 ? 50 : (scoreTracker.hpIncrease > 15 ? 25 : 0);
+    score += scoreTracker.totalGold > 3000 ? 75 : (scoreTracker.totalGold > 2000 ? 50 : (scoreTracker.totalGold > 1000 ? 25 : 0));
+    score += std::count_if(deck.cards.begin(), deck.cards.end(), [](const Card &c) { return c.getRarity() == CardRarity::RARE; }) == 0 ? 50 : 0;
+    score += std::count_if(deck.cards.begin(), deck.cards.end(), [](const Card &c) { return c.getRarity() == CardRarity::CURSE; }) >= 5 ? 100 : 0;
+    score -= relics.has(RelicId::SPIRIT_POOP) ? 1 : 0;
+
+    return score;
 }
 
 void GameContext::randomizeRngCounters(int counterOffset) {

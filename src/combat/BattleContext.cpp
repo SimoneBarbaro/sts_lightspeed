@@ -827,6 +827,39 @@ void BattleContext::exitBattle(GameContext &g) const {
 
         }
     }
+    if (m.id == MonsterId::CORRUPT_HEART) {
+        g.scoreTracker.heartbreaker += 1;
+    }
+
+    g.scoreTracker.isOverkill = g.scoreTracker.isOverkill || maxDamageDealt >= g.scoreTracker.OVERKILL_DAMAGE;
+    for (auto m: monsters.arr) {
+        g.scoreTracker.enemiesSlain += !m.isAlive();
+    }
+    if (g.curRoom == Room::ELITE) {
+        switch (g.act)
+        {
+        case 1:
+            g.scoreTracker.eliteKilledAct1 += 1;
+            break;
+        case 2:
+            g.scoreTracker.eliteKilledAct2 += 1;
+            break;
+        default:
+            g.scoreTracker.eliteKilledAct3 += 1;
+            break;
+        }
+        if (noDamage)
+            g.scoreTracker.perfectElites += 1;
+    } else if (g.curRoom == Room::BOSS) {
+        g.scoreTracker.bossesKilled += 1;
+        if (noDamage)
+            g.scoreTracker.perfectBosses += 1;
+    }
+    if (player.maxHp > g.maxHp)
+        g.scoreTracker.hpIncrease += player.maxHp - g.maxHp;
+    if (player.gold > g.gold)
+        g.scoreTracker.totalGold += player.gold - g.gold;
+    g.scoreTracker.isCcccombo = maxCardsPlayedPerTurn >= g.scoreTracker.CCCCOMBO_NUM_CARDS;
 
     g.potionCount = potionCount;
     g.potions = potions;
@@ -1273,6 +1306,7 @@ void BattleContext::useCard() {
             player.useEnergy(c.costForTurn);
         }
     }
+    cardsPlayerThisTurn++;
 }
 
 void BattleContext::useNoTriggerCard() {
@@ -2526,6 +2560,8 @@ void BattleContext::callEndOfTurnActions() {
         }
     }
 
+    maxCardsPlayedPerTurn = std::max(maxCardsPlayedPerTurn, cardsPlayerThisTurn);
+    cardsPlayerThisTurn = 0;
     // todo stance onEndOfTurn
 }
 
