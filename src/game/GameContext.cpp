@@ -922,6 +922,7 @@ void GameContext::transitionToMapNode(int mapNodeX) {
 
     curEvent = Event::INVALID;
     if (curRoom == Room::EVENT) {
+        scoreTracker.questionmarkVisited++;
         curRoom = getEventRoomOutcomeHelper(lastRoom == Room::SHOP);
         switch (curRoom) {
             case Room::EVENT:
