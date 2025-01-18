@@ -4002,6 +4002,8 @@ int GameContext::getFinalScore() const {
 
     std::unordered_map<int, int> cardCount;
     for (const auto &card : deck.cards) {
+        if (card.isStarterStrikeOrDefend())
+            continue;
         cardCount[static_cast<int>(card.getId())]++;
     }
     int collectorSets = 0;
