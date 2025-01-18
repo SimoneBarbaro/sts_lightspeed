@@ -22,9 +22,15 @@
 namespace sts {
 
     struct NNInterface {
-        static constexpr int observation_space_size = 412;
-
         static constexpr int numCards = static_cast<int>(CardId::ZAP);
+        static constexpr int observation_space_size = 4
+            // boss encoding
+            + 10
+            // deck card counts
+            + static_cast<int>(NNInterface::numCards*2)
+            // Relics one hot encodings
+            + static_cast<int>(RelicId::INVALID)
+            ;
         static constexpr int battle_observation_size = 9 // Basic player features
             // Player status features
             + static_cast<int>(PlayerStatus::THE_BOMB) 

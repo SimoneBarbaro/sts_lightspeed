@@ -169,13 +169,13 @@ namespace sts {
             encodeIdx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[encodeIdx] = std::min(ret[encodeIdx]+1, cardCountMax);
         }
-        offset += 220;
+        offset += NNInterface::numCards*2;
 
         for (auto r : gc.relics.relics) {
             int encodeIdx = offset + static_cast<int>(r.id);
             ret[encodeIdx] = 1;
         }
-        offset += 178;
+        offset += static_cast<int>(RelicId::INVALID);
 
         return ret;
     }
@@ -194,10 +194,10 @@ namespace sts {
         spaceOffset += 10;
 
         std::fill(ret.begin()+spaceOffset, ret.end(), cardCountMax);
-        spaceOffset += 220;
+        spaceOffset += static_cast<int>(NNInterface::numCards*2);
 
         std::fill(ret.begin()+spaceOffset, ret.end(), 1);
-        spaceOffset += 178;
+        spaceOffset += static_cast<int>(RelicId::INVALID);
 
         return ret;
     }

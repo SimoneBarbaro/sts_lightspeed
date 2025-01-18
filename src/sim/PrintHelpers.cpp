@@ -168,6 +168,8 @@ namespace sts {
         os << "\t" << gc.relics << "\n";
 
         os << "\t"; printEventListState(os, gc); os << "\n";
+        os << "\t Current Map:\n" << gc.map->toString() << "\n";
+        os << "\t Current Position: {" << gc.curMapNodeX << ", " << gc.curMapNodeY << "}" << "\n";
         os << "}\n";
         return os;
     }
