@@ -64,7 +64,7 @@ namespace sts {
     }
 
     void printPlayerInfo(std::ostream &os, const GameContext &gc) {
-        os << "{";
+        os << "Player: {";
         os << "curHp:" << gc.curHp
             << ",maxHp:" << gc.maxHp
             << ",gold:" << gc.gold
@@ -96,7 +96,7 @@ namespace sts {
     }
 
     void printRngInfo(std::ostream &os, const GameContext &gc, const std::string &separator) {
-        os << separator << "neowRng: " << gc.neowRng.counter;
+        os << "neowRng: " << gc.neowRng.counter;
         os << separator << "treasureRng: " << gc.treasureRng.counter;
         os << separator << "eventRng: " << gc.eventRng.counter;
         os << separator << "relicRng: " << gc.relicRng.counter;
@@ -140,7 +140,7 @@ namespace sts {
         os << "GameContext: {\n";
         os << "\tseed: \"" << SeedHelper::getString(gc.seed)
             << "\" seedAsLong: " << gc.seed << '\n';
-        os  << "floorNum: " << gc.floorNum
+        os  << "\tfloorNum: " << gc.floorNum
             << " act: " << gc.act
             << " ascension: " << gc.ascension
             << " boss: " << monsterEncounterStrings[static_cast<int>(gc.boss)]
@@ -150,9 +150,10 @@ namespace sts {
         os << "\tcurRoom: " << roomStrings[static_cast<int>(gc.curRoom)]
             << " curEvent: " << eventIdStrings[static_cast<int>(gc.curEvent)]
             << " eventData: " << gc.info.eventData
-            << " screenState: " << static_cast<int>(gc.screenState);
+            << " screenState: " << static_cast<int>(gc.screenState)
+            << " MapPosition: {" << gc.curMapNodeX << ", " << gc.curMapNodeY << "}";
 
-        os << "\t";
+        os << "\n\t";
         printPlayerInfo(os, gc);
 
         os << '\t';
@@ -168,9 +169,7 @@ namespace sts {
         os << "\t" << gc.relics << "\n";
 
         os << "\t"; printEventListState(os, gc); os << "\n";
-        os << "\t Current Map:\n" << gc.map->toString() << "\n";
-        os << "\t Current Position: {" << gc.curMapNodeX << ", " << gc.curMapNodeY << "}" << "\n";
-        os << "}\n";
+        //os << "\t Current Map:\n" << gc.map->toString() << "\n";
         return os;
     }
 

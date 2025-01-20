@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cassert>
+#include "iostream"
 
 #include "game/Map.h"
 #include "game/Random.h"

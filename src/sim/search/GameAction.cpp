@@ -700,6 +700,7 @@ std::vector<search::GameAction> getAllMapActions(const sts::GameContext &gc) {
     } else if (gc.curMapNodeY == -1) {
         for (const auto &node : gc.map->nodes[0]) {
             if (node.edgeCount > 0) {
+                assert(node.room != Room::NONE);
                 actions.emplace_back(node.x);
             }
         }
@@ -707,6 +708,8 @@ std::vector<search::GameAction> getAllMapActions(const sts::GameContext &gc) {
     } else {
         auto node = gc.map->getNode(gc.curMapNodeX, gc.curMapNodeY);
         for (int i = 0; i < node.edgeCount; ++i) {
+            assert(gc.map->getNode(node.edges[i], gc.curMapNodeY+1).edges[i] < 7);
+            assert(node.room != Room::NONE);
             actions.emplace_back(node.edges[i]);
         }
     }

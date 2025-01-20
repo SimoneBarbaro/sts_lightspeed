@@ -488,7 +488,7 @@ std::vector<search::Action> search::Action::enumerateAllAvailableActions(const B
     std::vector<search::Action> actions;
     switch (bc.inputState) {
         case InputState::PLAYER_NORMAL:
-            search::Action::enumerateCardActions(bc, actions);
+            //search::Action::enumerateCardActions(bc, actions);
             search::Action::enumeratePotionActions(bc, actions);
             actions.emplace_back(search::ActionType::END_TURN);
             break;
@@ -508,33 +508,17 @@ std::vector<search::Action> search::Action::enumerateAllAvailableActions(const B
             if (!c.canUseOnAnyTarget(bc)) {
                 continue;
             }
-
-            for (int targetIdx = 0; targetIdx < 5; ++targetIdx) {
-                if (c.canUse(bc, targetIdx, false)) {
-                    actions.emplace_back(search::ActionType::CARD, handIdx, targetIdx);
+            if (c.requiresTarget()) {
+                for (int targetIdx = 0; targetIdx < 5; ++targetIdx) {
+                    if (c.canUse(bc, targetIdx, false)) {
+                        actions.emplace_back(search::ActionType::CARD, handIdx, targetIdx);
+                    }
                 }
+            } else {
+                actions.emplace_back(search::ActionType::CARD, handIdx);
             }
         }
     }
-
-    for (int potionIdx = 0; potionIdx < bc.potionCount; ++potionIdx) {
-        const auto p = bc.potions[potionIdx];
-        if (p == Potion::INVALID || p == Potion::EMPTY_POTION_SLOT) {
-            continue;
-        }
-
-        if (!potionRequiresTarget(p)) {
-            actions.emplace_back(search::ActionType::POTION, potionIdx);
-        } else {
-            for (int targetIdx = 0; targetIdx < 5; ++targetIdx) {
-                if (bc.monsters.arr[targetIdx].isTargetable()) {
-                    actions.emplace_back(search::ActionType::POTION, potionIdx, targetIdx);
-                }
-            }
-        }
-    }
-
-    //actions.emplace_back(search::ActionType::END_TURN);
 
     return actions;
 }

@@ -137,14 +137,29 @@ PYBIND11_MODULE(slaythespire, m) {
             },
              "remove a card at a idx in the deck"
         )
+        // TODO I think it's bugged when I use gc.map, but not sure why?
+        .def_property_readonly("map",
+            [] (const GameContext &gc) {
+                return Map::fromSeed(gc.seed, gc.ascension, gc.act, true); },
+            "returns the current act map")
         .def_property_readonly("relics",
-               [] (const GameContext &gc) { return std::vector(gc.relics.relics); },
+               [] (const GameContext &gc) { return std::vector(gc.relics.relics.begin(), gc.relics.relics.end()); },
                "returns a copy of the list of relics"
         )
         .def("get_available_actions",
             [](GameContext &gc) {
                 std::vector<search::GameAction> actions = search::GameAction::getAllActionsInState(gc);
-                return std::vector(actions.begin(), actions.end());
+                return std::vector<search::GameAction>(actions.begin(), actions.end());
+            }
+        )
+        .def("get_valid_actions_mask",
+            [](GameContext &gc) {
+                std::vector<search::GameAction> actions = search::GameAction::getAllActionsInState(gc);
+                std::vector<int> mask = std::vector<int>(search::Encoding::getInstance()->gameActionEncodeMap.size(), 0);
+                for (auto a : actions) {
+                    mask[search::Encoding::getInstance()->gameActionEncodeMap[a.bits]] = 1;
+                }
+                return mask;
             }
         )
         .def("execute",
@@ -268,6 +283,7 @@ PYBIND11_MODULE(slaythespire, m) {
                 bc.executeActions();
             },
             "execute the actions in the bot's action queue")
+        .def_readonly("turn", &BattleContext::turn)
         .def("is_input_ready", [](const BattleContext &bc) { return bc.inputState == InputState::PLAYER_NORMAL || bc.inputState == InputState::CARD_SELECT; },
             "returns whether the current input state is ready for player input"
         )
@@ -287,6 +303,16 @@ PYBIND11_MODULE(slaythespire, m) {
             }
             return std::vector<search::Action>(0);
             }, "returns a list of valid actions for the current BattleContext")
+        .def("get_valid_actions_mask",
+            [](BattleContext &bc) {
+                std::vector<search::Action> actions = search::Action::enumerateAllAvailableActions(bc);
+                std::vector<int> mask = std::vector<int>(search::Encoding::getInstance()->battleActionEncodeMap.size(), 0);
+                for (auto a : actions) {
+                    mask[search::Encoding::getInstance()->battleActionEncodeMap[a.bits]] = 1;
+                }
+                return mask;
+            }
+        )
         .def("is_same_rng_counters", [](const BattleContext &bc, const BattleContext &other) {
             return bc.miscRng.counter == other.miscRng.counter 
                 && bc.shuffleRng.counter == other.shuffleRng.counter
@@ -345,9 +371,17 @@ PYBIND11_MODULE(slaythespire, m) {
     map.def("get_room_type", &sts::py::getRoomType);
     map.def("has_edge", &sts::py::hasEdge);
     map.def("get_nn_rep", &sts::py::getNNMapRepresentation);
+    map.def_property_readonly("nodes", [](const Map &map) {return std::vector(map.nodes.begin(), map.nodes.end());});
     map.def("__repr__", [](const Map &m) {
         return m.toString(true);
     });
+    pybind11::class_<MapNode> mapNode(m, "SpireMapNode");
+    mapNode.def(pybind11::init<>())
+        .def_readonly("x", &MapNode::x)
+        .def_readonly("y", &MapNode::y)
+        .def_readonly("edge_count", &MapNode::edgeCount)
+        .def_readonly("room", &MapNode::room)
+        .def_property_readonly("edges", [](const MapNode &mapNode) {return std::vector<int>(mapNode.edges.begin(), mapNode.edges.end());});
 
     pybind11::class_<Card> card(m, "Card");
     card.def(pybind11::init<CardId>())
