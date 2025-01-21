@@ -40,3 +40,8 @@ target_link_directories(test-converter PRIVATE json::nlohmann_json)
 target_include_directories(test-converter PUBLIC include)
 target_include_directories(test-converter PUBLIC json/include)
 
+add_executable(test-debug-actions apps/test-debug-actions.cpp bindings/bindings-util.cpp ${sts_lightspeed_SOURCES})
+target_link_directories(test-debug-actions PRIVATE json::nlohmann_json)
+target_include_directories(test-debug-actions PUBLIC include)
+target_include_directories(test-debug-actions PUBLIC json/include)
+target_include_directories(test-debug-actions PUBLIC bindings)
