@@ -43,6 +43,7 @@ int main() {
             if (!inBattle) {
                 bc = sts::BattleContext();
                 bc.init(gc);
+                inBattle = true;
             }
             auto actions = sts::search::Action::enumerateAllAvailableActions(bc);
             os << bc << "\n";
@@ -57,6 +58,7 @@ int main() {
                 bc.exitBattle(gc);
             }
         } else {
+            inBattle = false;
             auto actions = sts::search::GameAction::getAllActionsInState(gc);
             os << gc << "\n";
             os << "Game context available actions-> ";
