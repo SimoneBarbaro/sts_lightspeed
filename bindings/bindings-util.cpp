@@ -213,17 +213,17 @@ namespace sts {
             offset += static_cast<int>(Potion::WEAK_POTION);
             for (int i = 0; i < 3; ++i) {
                 auto price = s.relicPrice(i);
-                ret[offset + static_cast<int>(RelicId::INVALID) + (i+1)] = price;
+                ret[offset + i] = price;
             }
             offset += 3;
             for (int i = 0; i < 7; ++i) {
                 auto price = s.cardPrice(i);
-                ret[offset + NNInterface::numCards*2 + (i+1)] = price;
+                ret[offset + i] = price;
             }
             offset += 7;
             for (int i = 0; i < 3; ++i) {
                 auto price = s.potionPrice(i);
-                ret[offset + static_cast<int>(Potion::WEAK_POTION) + (i+1)] = price;
+                ret[offset + i] = price;
             }
             offset += 3;
             ret[offset++] = (int)s.removeCost != -1;

@@ -40,6 +40,8 @@ namespace sts {
             + static_cast<int>(RelicId::INVALID)
             // map
             + MAP_REPRESENTATION_SIZE
+            // screen state encodings
+            + static_cast<int>(ScreenState::BATTLE)
             // events one hot encodings
             + static_cast<int>(Event::WORLD_OF_GOOP)
             // relics reward
