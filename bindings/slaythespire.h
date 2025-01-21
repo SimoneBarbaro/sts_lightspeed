@@ -29,7 +29,7 @@ namespace sts {
             + 14*7*3
             // room types - for each node there are 6 possible rooms, 
             // the first row is always monster, the 8th row is always treasure, 14th is always rest
-            + 12*6; 
+            + 12*7*6; 
             
         static constexpr int observation_space_size = 4 // Basic player features
             // boss encoding
