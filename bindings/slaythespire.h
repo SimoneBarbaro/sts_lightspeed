@@ -10,6 +10,7 @@
 #include <array>
 #include "constants/PlayerStatusEffects.h"
 #include "constants/Relics.h"
+#include "constants/RelicPools.h"
 #include "constants/Cards.h"
 #include "constants/MonsterMoves.h"
 #include "combat/Player.h"
@@ -23,14 +24,32 @@ namespace sts {
 
     struct NNInterface {
         static constexpr int numCards = static_cast<int>(CardId::ZAP);
-        static constexpr int observation_space_size = 4
+        static constexpr int MAP_REPRESENTATION_SIZE = 7 // edges to first row
+            //valid edges to next row, 3 bits per node, 21 bits per row 
+            + 14*7*3
+            // room types - for each node there are 6 possible rooms, 
+            // the first row is always monster, the 8th row is always treasure, 14th is always rest
+            + 12*6; 
+            
+        static constexpr int observation_space_size = 4 // Basic player features
             // boss encoding
             + 10
             // deck card counts
             + static_cast<int>(NNInterface::numCards*2)
             // Relics one hot encodings
             + static_cast<int>(RelicId::INVALID)
-            ;
+            // map
+            + MAP_REPRESENTATION_SIZE
+            // events one hot encodings
+            + static_cast<int>(Event::WORLD_OF_GOOP)
+            // relics reward
+            + static_cast<int>(RelicId::INVALID)
+            // cards rewards
+            + NNInterface::numCards*2*5
+            // potions rewards
+            + static_cast<int>(Potion::WEAK_POTION)
+            // shop prices
+            + 15;
         static constexpr int battle_observation_size = 9 // Basic player features
             // Player status features
             + static_cast<int>(PlayerStatus::THE_BOMB) 
@@ -44,6 +63,7 @@ namespace sts {
             + 5 * (3 + 13 + static_cast<int>(Intent::UNKNOWN) + 2);
         static constexpr int playerHpMax = 200;
         static constexpr int playerGoldMax = 1800;
+        static constexpr int shopPriceMax = 500;
         static constexpr int cardCountMax = 7;
         static constexpr int maxStatusValue = 30;
         

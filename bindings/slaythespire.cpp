@@ -182,6 +182,8 @@ PYBIND11_MODULE(slaythespire, m) {
         }, "returns a string representation of the GameContext");
 
     gameContext.def_readwrite("outcome", &GameContext::outcome)
+        .def_readwrite("character_class", &GameContext::cc)
+        .def_readwrite("ascension", &GameContext::ascension)
         .def_readwrite("act", &GameContext::act)
         .def_readwrite("floor_num", &GameContext::floorNum)
         .def_readwrite("screen_state", &GameContext::screenState)

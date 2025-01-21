@@ -157,8 +157,7 @@ namespace sts {
         ret[offset++] = std::min(gc.maxHp, playerHpMax);
         ret[offset++] = std::min(gc.gold, playerGoldMax);
         ret[offset++] = gc.floorNum;
-        // TODO encode map
-        // TODO encode current event
+
         int bossEncodeIdx = offset + bossEncodeMap.at(gc.boss);
         ret[bossEncodeIdx] = 1;
         offset += 10;
@@ -176,6 +175,96 @@ namespace sts {
             ret[encodeIdx] = 1;
         }
         offset += static_cast<int>(RelicId::INVALID);
+        // Map encoding
+        std::vector<int> mapRep = sts::py::getNNMapRepresentation(*gc.map);
+        for (int mapRepVal: mapRep)
+            ret[offset++] = mapRepVal;
+        // Current screen encoding
+        ret[offset + static_cast<int>(gc.screenState)] = 1;
+        offset += static_cast<int>(ScreenState::BATTLE);
+
+
+
+        // Screen event encoding (exluding battle encoding)
+        if (gc.screenState == ScreenState::EVENT_SCREEN) {
+            ret[offset + static_cast<int>(gc.curEvent)] = 1;
+        } else if (gc.screenState == ScreenState::CARD_SELECT) {
+            ret[offset + static_cast<int>(gc.info.selectScreenType)] = 1;
+        }
+        offset += static_cast<int>(Event::WORLD_OF_GOOP);
+
+        if (gc.screenState == ScreenState::SHOP_ROOM) {
+            const auto s = gc.info.shop;
+            for (int i = 0; i < 3; ++i) {
+                int encodeIdx = offset + static_cast<int>(s.relics[i]);
+                ret[encodeIdx] = 1;
+            }
+            offset += static_cast<int>(RelicId::INVALID);
+            for (int i = 0; i < 7; ++i) {
+                int encodeIdx = offset + static_cast<int>(s.cards[i].id);
+                encodeIdx += s.cards[i].isUpgraded() ? NNInterface::numCards : 0;
+                ret[encodeIdx] = 1;
+            }
+            offset += NNInterface::numCards*2*5;
+            for (int i = 0; i < 3; ++i) {
+                int encodeIdx = offset + static_cast<int>(s.potions[i]);
+                ret[encodeIdx] = 1;
+            }
+            offset += static_cast<int>(Potion::WEAK_POTION);
+            for (int i = 0; i < 3; ++i) {
+                auto price = s.relicPrice(i);
+                ret[offset + static_cast<int>(RelicId::INVALID) + (i+1)] = price;
+            }
+            offset += 3;
+            for (int i = 0; i < 7; ++i) {
+                auto price = s.cardPrice(i);
+                ret[offset + NNInterface::numCards*2 + (i+1)] = price;
+            }
+            offset += 7;
+            for (int i = 0; i < 3; ++i) {
+                auto price = s.potionPrice(i);
+                ret[offset + static_cast<int>(Potion::WEAK_POTION) + (i+1)] = price;
+            }
+            offset += 3;
+            ret[offset++] = (int)s.removeCost != -1;
+            ret[offset++] = s.removeCost != -1 ? s.removeCost : 0;
+        } else if (gc.screenState == ScreenState::REWARDS) {
+            // gold reward is irrelevant
+            auto rewards = gc.info.rewardsContainer;
+            for (int i = 0; i < rewards.relicCount; i++) {
+                int encodeIdx = offset + static_cast<int>(rewards.relics[i]);
+                ret[encodeIdx] = 1;
+            }
+            offset += static_cast<int>(RelicId::INVALID);
+            for (int i = 0; i < rewards.cardRewardCount; i++) {
+                for (int j = 0; j < rewards.cardRewards[i].size(); j++) {
+                    auto c = rewards.cardRewards[i][j];
+                    int encodeIdx = offset + static_cast<int>(c.id);
+                    encodeIdx += c.isUpgraded() ? NNInterface::numCards : 0;
+                    ret[encodeIdx] = 1;
+                }
+                offset += NNInterface::numCards*2;
+            }
+            for (int i = rewards.cardRewardCount; i < 5; i++) {
+                offset += NNInterface::numCards*2;
+            }
+            for (int i = 0; i < rewards.potionCount; i++) {
+                int encodeIdx = offset + static_cast<int>(rewards.relics[i]);
+                ret[encodeIdx] = 1;                    
+            }
+            offset += static_cast<int>(Potion::WEAK_POTION);
+            offset += 15;
+
+        } else if (gc.screenState == ScreenState::BOSS_RELIC_REWARDS) {
+            for (int i = 0; i < 3; ++i) {
+                int encodeIdx = offset + static_cast<int>(gc.info.bossRelics[i]);
+                ret[encodeIdx] = 1;
+            }
+            offset += static_cast<int>(RelicId::INVALID);
+            offset += NNInterface::numCards*2*5;
+            offset += static_cast<int>(Potion::WEAK_POTION);
+            offset += 15;
+        }
 
         return ret;
     }
@@ -197,7 +286,15 @@ namespace sts {
         spaceOffset += static_cast<int>(NNInterface::numCards*2);
 
         std::fill(ret.begin()+spaceOffset, ret.end(), 1);
-        spaceOffset += static_cast<int>(RelicId::INVALID);
+        spaceOffset += static_cast<int>(RelicId::INVALID) + MAP_REPRESENTATION_SIZE + static_cast<int>(Event::WORLD_OF_GOOP) + static_cast<int>(RelicId::INVALID);
+
+        std::fill(ret.begin()+spaceOffset, ret.end(), cardCountMax);
+        spaceOffset += static_cast<int>(NNInterface::numCards*2*5) + static_cast<int>(Potion::WEAK_POTION);
+        // finally, shop prices
+        std::fill(ret.begin()+spaceOffset, ret.end(), cardCountMax);
+        spaceOffset += 15;
+        // bool (cardRemove available)
+        ret[spaceOffset-1] = 1;
 
         return ret;
     }
@@ -414,24 +511,6 @@ namespace sts::search {
             battleActionDecodeMap[encodedValue++] = Action(bits);
         }*/
     }
-
-    /*std::array<int, Encoding::action_space_size> Encoding::encodeAction(const GameContext &gc, const sts::search::GameAction &action) {
-        std::array<int,action_space_size> ret = {};
-        ret[0] = static_cast<int>(action.getGameActionType(gc));
-        ret[1] = static_cast<int>(action.getRewardsActionType());
-        ret[2] = action.getIdx1();
-        ret[3] = action.getIdx2();
-        return ret;
-    }
-
-    std::array<int, Encoding::action_space_size> Encoding::encodeBattleAction(const sts::search::Action &action) {
-        std::array<int,action_space_size> ret = {};
-        ret[0] = action.getSourceIdx();
-        ret[1] = static_cast<int>(action.getActionType());
-        ret[2] = action.getTargetIdx();
-        ret[3] = 0;
-        return ret;
-    }*/
 
     Encoding* Encoding::getInstance() {
         if (theInstance == nullptr) {
