@@ -36,6 +36,8 @@ namespace sts {
             + 10
             // deck card counts
             + static_cast<int>(NNInterface::numCards*2)
+            // potion one hot encodings
+            + static_cast<int>(Potion::WEAK_POTION)
             // Relics one hot encodings
             + static_cast<int>(RelicId::INVALID)
             // map
@@ -59,6 +61,8 @@ namespace sts {
             + 8
             // hand+draw+discard+exhaust pile one hot encodings of each card
             + static_cast<int>(NNInterface::numCards*2*13)
+            // potion one hot encodings
+            + static_cast<int>(Potion::WEAK_POTION)
             // Relics one hot encodings
             + static_cast<int>(RelicId::INVALID)
             // Monster features + monster statuses + monster intents and damage info

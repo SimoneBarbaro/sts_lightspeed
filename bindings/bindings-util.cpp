@@ -62,7 +62,12 @@ namespace sts {
             idx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[offset + idx] += 1;
         }
-
+        // potions encodings
+        for (auto p : bc.potions) {
+            int encodeIdx = offset + static_cast<int>(p);
+            ret[encodeIdx] = 1;
+        }
+        offset += static_cast<int>(Potion::WEAK_POTION);
         // Encode relics
         for (auto r : gc.relics.relics) {
             int encodeIdx = offset + static_cast<int>(r.id);
@@ -169,7 +174,13 @@ namespace sts {
             ret[encodeIdx] = std::min(ret[encodeIdx]+1, cardCountMax);
         }
         offset += NNInterface::numCards*2;
-
+        // potions encodings
+        for (auto p : gc.potions) {
+            int encodeIdx = offset + static_cast<int>(p);
+            ret[encodeIdx] = 1;
+        }
+        offset += static_cast<int>(Potion::WEAK_POTION);
+        // relics encodings
         for (auto r : gc.relics.relics) {
             int encodeIdx = offset + static_cast<int>(r.id);
             ret[encodeIdx] = 1;
@@ -182,8 +193,6 @@ namespace sts {
         // Current screen encoding
         ret[offset + static_cast<int>(gc.screenState)] = 1;
         offset += static_cast<int>(ScreenState::BATTLE);
-
-
 
         // Screen event encoding (exluding battle encoding)
         if (gc.screenState == ScreenState::EVENT_SCREEN) {
@@ -286,7 +295,7 @@ namespace sts {
         spaceOffset += static_cast<int>(NNInterface::numCards*2);
 
         std::fill(ret.begin()+spaceOffset, ret.end(), 1);
-        spaceOffset += static_cast<int>(RelicId::INVALID) + MAP_REPRESENTATION_SIZE + static_cast<int>(Event::WORLD_OF_GOOP) + static_cast<int>(RelicId::INVALID);
+        spaceOffset += static_cast<int>(Potion::WEAK_POTION)+static_cast<int>(RelicId::INVALID) + MAP_REPRESENTATION_SIZE + static_cast<int>(Event::WORLD_OF_GOOP) + static_cast<int>(RelicId::INVALID);
 
         std::fill(ret.begin()+spaceOffset, ret.end(), cardCountMax);
         spaceOffset += static_cast<int>(NNInterface::numCards*2*5) + static_cast<int>(Potion::WEAK_POTION);
@@ -326,6 +335,9 @@ namespace sts {
         // draw+discard+exausth
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+NNInterface::numCards*2*3, cardCountMax);
         spaceOffset += NNInterface::numCards*2*3;
+        // Relics booleans
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(Potion::WEAK_POTION), 1);
+        spaceOffset += static_cast<int>(Potion::WEAK_POTION);
         // Relics booleans
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(RelicId::INVALID), 1);
         spaceOffset += static_cast<int>(RelicId::INVALID);
