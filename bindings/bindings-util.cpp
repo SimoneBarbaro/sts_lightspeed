@@ -142,15 +142,12 @@ namespace sts {
         int intentIdx = static_cast<int>(monsterIntent);
         ret[offset+intentIdx] = 1;
         if (monsterIntent == Intent::ATTACK || monsterIntent == Intent::ATTACK_BUFF || monsterIntent == Intent::ATTACK_DEBUFF || monsterIntent == Intent::ATTACK_DEFEND) {
-            // TODO check if this is the correct damage info
             DamageInfo damage = monster.getMoveBaseDamage(bc);
             ret[offset++] = damage.attackCount;
             ret[offset++] = damage.damage;
         } else { // We still want to increase offset when no damage is done
             offset += 2;
         }
-        //int monsterMoveIdx = static_cast<int>(monster.moveHistory[0]);
-        //ret[offset + monsterMoveIdx] = 1;
     }
 
     std::array<int,NNInterface::observation_space_size> NNInterface::getObservation(const GameContext &gc) const {
@@ -258,7 +255,7 @@ namespace sts {
                 offset += NNInterface::numCards*2;
             }
             for (int i = 0; i < rewards.potionCount; i++) {
-                int encodeIdx = offset + static_cast<int>(rewards.relics[i]);
+                int encodeIdx = offset + static_cast<int>(rewards.potions[i]);
                 ret[encodeIdx] = 1;                    
             }
             offset += static_cast<int>(Potion::WEAK_POTION);
