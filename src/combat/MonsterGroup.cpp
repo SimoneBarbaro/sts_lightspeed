@@ -570,7 +570,7 @@ MonsterId MonsterGroup::getSlaver(Random &miscRng) {
 
 void MonsterGroup::doMonsterTurn(BattleContext &bc) {
     auto &m = arr[bc.monsterTurnIdx];
-    if ((!m.isDeadOrEscaped() || m.isHalfDead())
+    if ((!m.isDeadOrEscaped() || m.isHalfDead()) && m.id != MonsterId::INVALID
         && !skipTurn[bc.monsterTurnIdx])
     {
         if (skipTurn[bc.monsterTurnIdx]) {
