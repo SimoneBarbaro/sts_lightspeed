@@ -261,6 +261,7 @@ namespace sts {
         GameScoreTracker scoreTracker = GameScoreTracker();
 
         GameContext() = default;
+        GameContext(const GameContext &rhs) = default;
         GameContext(CharacterClass cc, std::uint64_t seed, int ascensionLevel);
 
         void initFromJson(const nlohmann::json &json);

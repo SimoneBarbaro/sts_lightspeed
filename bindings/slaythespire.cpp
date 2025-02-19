@@ -114,7 +114,9 @@ PYBIND11_MODULE(slaythespire, m) {
 
     pybind11::class_<GameContext> gameContext(m, "GameContext");
     gameContext.def(pybind11::init<>())
+        .def(pybind11::init<const GameContext>())
         .def(pybind11::init<CharacterClass, std::uint64_t, int>())
+        .def("copy", [](const GameContext &gc) {return GameContext(gc);})
         .def("pick_reward_card", &sts::py::pickRewardCard, "choose to obtain the card at the specified index in the card reward list")
         .def("skip_reward_cards", &sts::py::skipRewardCards, "choose to skip the card reward (increases max_hp by 2 with singing bowl)")
         .def("get_card_reward", &sts::py::getCardReward, "return the current card reward list")
@@ -217,6 +219,7 @@ PYBIND11_MODULE(slaythespire, m) {
     pybind11::class_<BattleContext> battleContext(m, "BattleContext");
     battleContext.def(pybind11::init<>())
         .def(pybind11::init<const BattleContext &>())
+        .def("copy", [](const BattleContext &bc) {return BattleContext(bc);})
         .def("init",
             [](BattleContext &bc, const GameContext &gc) {bc.init(gc);},
             "initialize the BattleContext from a GameContext")
