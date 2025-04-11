@@ -37,13 +37,18 @@ namespace sts {
         std::array<int,NNInterface::battle_observation_size> ret {};
         int offset = 0;
         encodePlayer(ret, offset, bc.player);
+        //std::cout << "player" << " offset " << offset << std::endl;
         // 10 cards in hand, need positional encoding
+        int prevOffset = offset;
         for (CardInstance c : bc.cards.hand) {
             int idx = static_cast<int>(c.getId());
             idx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[offset + idx] = 1;
             offset += NNInterface::numCards*2;
+            //std::cout << "hand " << c << " offset " << offset << " idx " << idx << std::endl;
         }
+        assert(offset == prevOffset + 10 * NNInterface::numCards*2);
+        offset = prevOffset + 10 * NNInterface::numCards*2;
         // encode counts of cards for draw, exhaust and discard piles
         for (CardInstance c : bc.cards.drawPile) {
             int idx = static_cast<int>(c.getId());
@@ -51,17 +56,21 @@ namespace sts {
             ret[offset + idx] += 1;
         }
         offset += NNInterface::numCards*2;
+        //std::cout << "draw pile" << " offset " << offset << std::endl;
         for (CardInstance c : bc.cards.discardPile) {
             int idx = static_cast<int>(c.getId());
             idx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[offset + idx] += 1;
         }
         offset += NNInterface::numCards*2;
+        //std::cout << "discard pile" << " offset " << offset << std::endl;
         for (CardInstance c : bc.cards.exhaustPile) {
             int idx = static_cast<int>(c.getId());
             idx += c.isUpgraded() ? NNInterface::numCards : 0;
             ret[offset + idx] += 1;
         }
+        offset += NNInterface::numCards*2;
+        //std::cout << "exhaust pile" << " offset " << offset << std::endl;
         // potions encodings
         for (auto p : bc.potions) {
             int encodeIdx = offset + static_cast<int>(p);
@@ -73,6 +82,8 @@ namespace sts {
             int encodeIdx = offset + static_cast<int>(r.id);
             ret[encodeIdx] = 1;
         }
+        offset += static_cast<int>(RelicId::INVALID);
+        //std::cout << "Monsters" << " offset " << offset << std::endl;
         // Encode monsters
         for (int i = 0; i < bc.monsters.monsterCount; i++) {
             if (!bc.monsters.arr[i].isDeadOrEscaped())
@@ -94,13 +105,14 @@ namespace sts {
         ret[offset++] = player.getStatus<PlayerStatus::DEXTERITY>();
         ret[offset++] = player.getStatus<PlayerStatus::STRENGTH>();
         ret[offset++] = player.getStatus<PlayerStatus::FOCUS>();
-        ret[offset++] = player.happyFlowerCounter;
-        ret[offset++] = player.incenseBurnerCounter;
-        ret[offset++] = player.inkBottleCounter;
-        ret[offset++] = player.inserterCounter;
-        ret[offset++] = player.nunchakuCounter;
-        ret[offset++] = player.penNibCounter;
-        ret[offset++] = player.sundialCounter;
+        ret[offset++] = player.happyFlowerCounter > 0 ? player.happyFlowerCounter : 0;
+        ret[offset++] = player.incenseBurnerCounter > 0 ? player.incenseBurnerCounter : 0;
+        ret[offset++] = player.inkBottleCounter > 0 ? player.inkBottleCounter : 0;
+        ret[offset++] = player.inserterCounter > 0 ? player.inserterCounter : 0;
+        ret[offset++] = player.nunchakuCounter > 0 ? player.nunchakuCounter : 0;
+        // There is a possible bug according ot battleContxt.cpp for penNibCounter==-1
+        ret[offset++] = player.penNibCounter == -1 ? 10 : player.penNibCounter;
+        ret[offset++] = player.sundialCounter > 0 ? player.sundialCounter : 0;
         ret[offset++] = (int)player.haveUsedNecronomiconThisTurn;
         // TODO orbs
         // All the other statuses are in statusMap
@@ -108,6 +120,7 @@ namespace sts {
         {
             ret[offset + static_cast<int>(status.first)] = status.second;
         }
+        offset += static_cast<int>(PlayerStatus::THE_BOMB);
     }
 
     void NNInterface::encodeMonster(std::array<int, NNInterface::battle_observation_size> &ret, int &offset, const sts::Monster &monster, bool hasRunicDome, const BattleContext &bc) const
@@ -129,18 +142,21 @@ namespace sts {
         ret[offset++] = monster.getStatus<MonsterStatus::SHACKLED>();
         ret[offset++] = monster.getStatus<MonsterStatus::VULNERABLE>();
         ret[offset++] = monster.getStatus<MonsterStatus::WEAK>();
-
+        //std::cout << "Monster statuses" << " offset " << offset << std::endl;
         ret[offset++] = monster.uniquePower0;
         ret[offset++] = monster.uniquePower1;
+        //std::cout << "Monster power" << " offset " << offset << std::endl;
         // one hot encoding monster type
         int monsterIdx = static_cast<int>(monster.id);
         ret[offset + monsterIdx] = 1;
+        offset += static_cast<int>(sts::MonsterId::WRITHING_MASS);
         Intent monsterIntent = getMoveIntent(monster.moveHistory[0]);
         if (hasRunicDome) {
             monsterIntent = Intent::UNKNOWN;
         }
         int intentIdx = static_cast<int>(monsterIntent);
         ret[offset+intentIdx] = 1;
+        offset += static_cast<int>(Intent::UNKNOWN);
         if (monsterIntent == Intent::ATTACK || monsterIntent == Intent::ATTACK_BUFF || monsterIntent == Intent::ATTACK_DEBUFF || monsterIntent == Intent::ATTACK_DEFEND) {
             DamageInfo damage = monster.getMoveBaseDamage(bc);
             ret[offset++] = damage.attackCount;
@@ -316,36 +332,47 @@ namespace sts {
         ret[spaceOffset++] = 20;
         ret[spaceOffset++] = 3;
 
-        // Statuses
+        // Basic Statuses
         ret[spaceOffset++] = maxStatusValue;
         ret[spaceOffset++] = maxStatusValue;
         ret[spaceOffset++] = maxStatusValue;
         ret[spaceOffset++] = maxStatusValue;
-        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(PlayerStatus::THE_BOMB), maxStatusValue);
-        spaceOffset += static_cast<int>(PlayerStatus::THE_BOMB);
         // Special info
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+8, 10);
         spaceOffset += 8;
+        // Statuses
+        std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(PlayerStatus::THE_BOMB), maxStatusValue);
+        spaceOffset += static_cast<int>(PlayerStatus::THE_BOMB);
+        //std::cout << "player" << " spaceOffset " << spaceOffset << std::endl;
         // hand booleans
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+NNInterface::numCards*2*10, 1);
         spaceOffset += NNInterface::numCards*2*10;
+        //std::cout << "hand" << " spaceOffset " << spaceOffset << std::endl;
         // draw+discard+exausth
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+NNInterface::numCards*2*3, cardCountMax);
         spaceOffset += NNInterface::numCards*2*3;
+        //std::cout << "draw+discard+exausth" << " spaceOffset " << spaceOffset << std::endl;
         // Relics booleans
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(Potion::WEAK_POTION), 1);
         spaceOffset += static_cast<int>(Potion::WEAK_POTION);
         // Relics booleans
         std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(RelicId::INVALID), 1);
         spaceOffset += static_cast<int>(RelicId::INVALID);
+        //std::cout << "Monsters" << " spaceOffset " << spaceOffset << std::endl;
         // Monsters
         for (int i = 0; i < 5; i++) {
-            ret[spaceOffset++] = playerHpMax;
-            ret[spaceOffset++] = playerHpMax;
+            ret[spaceOffset++] = 700;
+            ret[spaceOffset++] = 700;
             ret[spaceOffset++] = 60;
             // Statuses
             for (int j = 0; j < 13; j++)
                 ret[spaceOffset++] = maxStatusValue;
+            // uniquePowers
+            ret[spaceOffset++] = maxStatusValue;
+            ret[spaceOffset++] = maxStatusValue;
+            // Monster type
+            std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(sts::MonsterId::WRITHING_MASS), 1);
+            spaceOffset += static_cast<int>(sts::MonsterId::WRITHING_MASS);
             // Intent
             std::fill(ret.begin()+spaceOffset, ret.begin()+spaceOffset+static_cast<int>(Intent::UNKNOWN), 1);
             spaceOffset += static_cast<int>(Intent::UNKNOWN);

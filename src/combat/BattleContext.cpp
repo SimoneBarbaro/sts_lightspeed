@@ -269,7 +269,11 @@ void sts::BattleContext::initMonstersFormJson(nlohmann::json_abi_v3_11_3::json &
         {
             monsters.monstersAlive--;
         }
-        monster->moveHistory[0] = sts::getMonsterMoveIdFromGameId(monster->id, m.at("move_id").get<int>());
+        // No move id for runic dome
+        if (m.contains("move_id"))
+        {
+            monster->moveHistory[0] = sts::getMonsterMoveIdFromGameId(monster->id, m.at("move_id").get<int>());
+        }
         if (m.contains("last_move_id"))
         {
             monster->moveHistory[1] = sts::getMonsterMoveIdFromGameId(monster->id, m.at("last_move_id").get<int>());
@@ -285,12 +289,10 @@ void sts::BattleContext::initMonstersFormJson(nlohmann::json_abi_v3_11_3::json &
 
         // some monster specific information
         // TODO: still missing Shield Gremlin target *and* bronze automaton lastBoostWasFlail
-        switch (monster->id)
-        {
-        case MonsterId::HEXAGHOST:
+        // TODO this seems to be badly made
+        if (m.contains("active_orbs")) {
             monster->uniquePower0 = m["active_orbs"];
-            break;
-        };
+        }
 
         // monster powers
         auto powers = m["powers"];

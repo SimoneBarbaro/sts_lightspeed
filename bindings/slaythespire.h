@@ -55,10 +55,10 @@ namespace sts {
             // shop prices
             + 15;
         static constexpr int battle_observation_size = 9 // Basic player features
-            // Player status features
-            + static_cast<int>(PlayerStatus::THE_BOMB) 
             // player special info features
             + 8
+            // Player status features
+            + static_cast<int>(PlayerStatus::THE_BOMB)
             // hand+draw+discard+exhaust pile one hot encodings of each card
             + static_cast<int>(NNInterface::numCards*2*13)
             // potion one hot encodings
@@ -66,11 +66,12 @@ namespace sts {
             // Relics one hot encodings
             + static_cast<int>(RelicId::INVALID)
             // Monster features + monster statuses + monster intents and damage info
-            + 5 * (3 + 13 + static_cast<int>(Intent::UNKNOWN) + 2);
+            + 5 * (3 + 13 + 2 + static_cast<int>(sts::MonsterId::WRITHING_MASS) + static_cast<int>(Intent::UNKNOWN) + 2);
         static constexpr int playerHpMax = 200;
         static constexpr int playerGoldMax = 1800;
         static constexpr int shopPriceMax = 500;
-        static constexpr int cardCountMax = 7;
+        // TODO is there a more robust card count max considering status effects and things like that can increase this a lot?
+        static constexpr int cardCountMax = 10;
         static constexpr int maxStatusValue = 30;
         
         
